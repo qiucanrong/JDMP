@@ -1,11 +1,23 @@
 import streamlit as st
 import pandas as pd
+import io
 
-st.title("JDMP Prototype: Importing, Cleaning, Validation")
+st.title("JDMP Prototype" \
+"Importing, Cleaning, Validation, Template (standard values)")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
 desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
+template_file = st.file_uploader("Upload SharedShelf Template Excel", type=["xlsx"])
+
+# --- template file handling ---
+template_df = None
+if template_file:
+    try:
+        template_df = pd.read_excel(template_file)
+        st.success(f"Template loaded: {template_df.shape[1]} columns detected")
+    except Exception as e:
+        st.error(f"Could not read the SharedShelf template: {e}")
 
 # --- URNs file handling ---
 if urns_file:
@@ -69,8 +81,50 @@ if urns_file and desc_file:
         #    st.success("Override enabled: You can proceed to populate the template.")
 
     else:
-        st.info("Please select the key columns for validation to run.")
+        st.info("Please select the match fields for validation to run.")
 
+# --- template category 1: auto-populate standard values ---
+if urns_file and desc_file and template_df:
+    #st.subheader("Category 1: Populate standard template fields")
 
+    target_rows = len(urns_df)
+
+    # create an empty copy of the template with the correct number of rows preserved
+    template_out = template_df.head(0).copy()
+    template_out = template_out.reindex(range(target_rows)).reset_index(drop=True)
+
+    # verify the SSID, Repository[34349], Description[34357] columns
+    required_cols = ["SSID", "Repository[34349]", "Description[34357]"]
+    missing = [c for c in required_cols if c not in template_out.columns]
+    if missing:
+        st.error(
+            "The uploaded template is missing required columns: "
+            + ", ".join(missing)
+        )
+    else:
+        template_out.loc[:, "SSID"] = "NEW"
+        template_out.loc[:, "Repository[34349]"] = "Judaica Division, Widener Library"
+        template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
+
+        st.session_state["template_out"] = template_out
+        st.session_state["target_rows"] = target_rows
+
+        st.success("Category 1 complete: SSID, Repository, and Description populated for all rows.")
+
+        st.dataframe(
+            template_out[["SSID", "Repository[34349]", "Description[34357]"]].head(10),
+            use_container_width=True
+        )
+    
+    # download the updated template as Excel
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            template_out.to_excel(writer, index=False)
+        st.download_button(
+            label="Download Populated SharedShelf Template (Excel)",
+            data=output.getvalue(),
+            file_name="JDMP_Populated_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
 
