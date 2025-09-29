@@ -3,7 +3,7 @@ import pandas as pd
 import io
 
 st.title("JDMP Prototype" \
-"Importing, Cleaning, Validation, Template (standard values)")
+"Importing, Cleaning, Validation, Template (category 1)")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
@@ -84,7 +84,7 @@ if urns_file and desc_file:
         st.info("Please select the match fields for validation to run.")
 
 # --- template category 1: auto-populate standard values ---
-if urns_file and desc_file and template_df:
+if urns_file and desc_file and template_df is not None:
     #st.subheader("Category 1: Populate standard template fields")
 
     target_rows = len(urns_df)
