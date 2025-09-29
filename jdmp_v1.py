@@ -2,22 +2,12 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("JDMP Prototype" \
-"Importing, Cleaning, Validation, Template (category 1)")
+st.title("JDMP Prototype: Importing, Cleaning, Validation, Template (category 1, 2)")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
 desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
 template_file = st.file_uploader("Upload SharedShelf Template Excel", type=["xlsx"])
-
-# --- template file handling ---
-template_df = None
-if template_file:
-    try:
-        template_df = pd.read_excel(template_file)
-        st.success(f"Template loaded: {template_df.shape[1]} columns detected")
-    except Exception as e:
-        st.error(f"Could not read the SharedShelf template: {e}")
 
 # --- URNs file handling ---
 if urns_file:
@@ -54,6 +44,15 @@ if desc_file:
     desc_start_date_col = st.selectbox("Select the Start Date column", desc_cols)
     desc_end_date_col = st.selectbox("Select the End Date column", desc_cols)
 
+# --- template file handling ---
+template_df = None
+if template_file:
+    try:
+        template_df = pd.read_excel(template_file)
+        st.success(f"Template loaded: {template_df.shape[1]} columns detected")
+    except Exception as e:
+        st.error(f"Could not read the SharedShelf template: {e}")
+
 # --- validation ---
 if urns_file and desc_file:
     if "urns_key_col" in locals() and "desc_key_col" in locals():
@@ -83,48 +82,49 @@ if urns_file and desc_file:
     else:
         st.info("Please select the match fields for validation to run.")
 
-# --- template category 1: auto-populate standard values ---
+# --- template population pipeline ---
 if urns_file and desc_file and template_df is not None:
-    #st.subheader("Category 1: Populate standard template fields")
+    st.subheader("Populate SharedShelf Template")
 
+    # initialize blank template aligned to URNs row count
     target_rows = len(urns_df)
-
-    # create an empty copy of the template with the correct number of rows preserved
     template_out = template_df.head(0).copy()
     template_out = template_out.reindex(range(target_rows)).reset_index(drop=True)
 
-    # verify the SSID, Repository[34349], Description[34357] columns
-    required_cols = ["SSID", "Repository[34349]", "Description[34357]"]
-    missing = [c for c in required_cols if c not in template_out.columns]
-    if missing:
-        st.error(
-            "The uploaded template is missing required columns: "
-            + ", ".join(missing)
-        )
-    else:
+    # category 1: standard fixed values
+    try:
         template_out.loc[:, "SSID"] = "NEW"
         template_out.loc[:, "Repository[34349]"] = "Judaica Division, Widener Library"
         template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
+    except KeyError as e:
+        st.error(f"Template missing expected column for Category 1: {e}")
 
-        st.session_state["template_out"] = template_out
-        st.session_state["target_rows"] = target_rows
+    # category 2: FILE-URN + OBJ-OSN (from URNs file)
+    missing_urn_cols = [c for c in ["FILE-URN", "OBJ-OSN"] if c not in urns_df.columns]
+    if missing_urn_cols:
+        st.error("URNs file missing required columns: " + ", ".join(missing_urn_cols))
+    else:
+        try:
+            template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
+            template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
+        except KeyError as e:
+            st.error(f"Template missing expected column for Category 2: {e}")
 
-        st.success("Category 1 complete: SSID, Repository, and Description populated for all rows.")
+    # save intermediate for future categories
+    st.session_state["template_out"] = template_out
 
-        st.dataframe(
-            template_out[["SSID", "Repository[34349]", "Description[34357]"]].head(10),
-            use_container_width=True
-        )
-    
-    # download the updated template as Excel
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            template_out.to_excel(writer, index=False)
-        st.download_button(
-            label="Download Populated SharedShelf Template (Excel)",
-            data=output.getvalue(),
-            file_name="JDMP_Populated_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+    # show combined preview of what’s been filled so far
+    preview_cols = ["SSID", "Filename", "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
+    st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
+    # export to Excel
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        template_out.to_excel(writer, index=False)
+    st.download_button(
+        label="Download Populated SharedShelf Template (Excel)",
+        data=output.getvalue(),
+        file_name="JDMP_Populated_Template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
