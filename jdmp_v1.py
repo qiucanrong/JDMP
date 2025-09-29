@@ -2,12 +2,22 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("JDMP Prototype: Importing, Cleaning, Validation, Template (category 1, 2)")
+st.title("JDMP Prototype")
+st.header("Importing, Cleaning, Validation, Template Population (category 1, 2), Exporting")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
 desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
 template_file = st.file_uploader("Upload SharedShelf Template Excel", type=["xlsx"])
+
+# --- template file handling ---
+template_df = None
+if template_file:
+    try:
+        template_df = pd.read_excel(template_file)
+        st.success(f"Template loaded: {template_df.shape[1]} columns detected")
+    except Exception as e:
+        st.error(f"Could not read the SharedShelf template: {e}")
 
 # --- URNs file handling ---
 if urns_file:
@@ -15,7 +25,7 @@ if urns_file:
 
     # drop rows with NaN or blank FILE-URN
     if "FILE-URN" in urns_df.columns:
-        urns_df = urns_df.dropna(subset=["FILE-URN"])
+        urns_df = urns_df.dropna(subset=["FILE-URN"]).copy()
         urns_df = urns_df[urns_df["FILE-URN"].astype(str).str.strip() != ""]
         st.success(f"Cleaned URNs: {len(urns_df)} rows remaining")
     else:
@@ -43,15 +53,6 @@ if desc_file:
     desc_title_col = st.selectbox("Select the Title column", desc_cols)
     desc_start_date_col = st.selectbox("Select the Start Date column", desc_cols)
     desc_end_date_col = st.selectbox("Select the End Date column", desc_cols)
-
-# --- template file handling ---
-template_df = None
-if template_file:
-    try:
-        template_df = pd.read_excel(template_file)
-        st.success(f"Template loaded: {template_df.shape[1]} columns detected")
-    except Exception as e:
-        st.error(f"Could not read the SharedShelf template: {e}")
 
 # --- validation ---
 if urns_file and desc_file:
