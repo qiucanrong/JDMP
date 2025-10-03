@@ -25,14 +25,18 @@ if urns_file:
 
     # drop rows with NaN or blank FILE-URN
     if "FILE-URN" in urns_df.columns:
-        urns_df = urns_df.dropna(subset=["FILE-URN"]).copy()
-        urns_df = urns_df[urns_df["FILE-URN"].astype(str).str.strip() != ""]
+        urns_df = urns_df.dropna(subset=["FILE-URN", "OBJ-OSN"]).copy()
+        urns_df = urns_df[(urns_df["FILE-URN"].astype(str).str.strip() != "") &
+                          (urns_df["OBJ-OSN"].astype(str).str.strip() != "")]
         st.success(f"Cleaned URNs: {len(urns_df)} rows remaining")
     else:
         st.error("Column 'FILE-URN' not found in URNs file")
 
+    st.subheader("Preview: Cleaned URNs Data")
+    st.dataframe(urns_df.head(20), use_container_width=True)
+
     urns_cols = urns_df.columns.tolist()
-    st.subheader("Original URNs Columns")
+    st.subheader("URNs Columns")
 
     # select the match field (default = OBJ-OSN)
     urns_default_key_col = "OBJ-OSN"
@@ -102,15 +106,11 @@ if urns_file and desc_file and template_df is not None:
         st.error(f"Template missing expected column for Category 1: {e}")
 
     # category 2: FILE-URN + OBJ-OSN (from URNs file)
-    missing_urn_cols = [c for c in ["FILE-URN", "OBJ-OSN"] if c not in urns_df.columns]
-    if missing_urn_cols:
-        st.error("URNs file missing required columns: " + ", ".join(missing_urn_cols))
-    else:
-        try:
-            template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
-            template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
-        except KeyError as e:
-            st.error(f"Template missing expected column for Category 2: {e}")
+    try:
+        template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
+        template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
+    except KeyError as e:
+        st.error(f"Template missing expected column for Category 2: {e}")
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
