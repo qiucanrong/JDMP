@@ -21,7 +21,7 @@ if template_file: # if user uploads a new template
 
 else: # fallback to default stored template
     try:
-        template_df = pd.read_excel("SharedSheld Template.xlsx")
+        template_df = pd.read_excel("SharedShelf Template.xlsx")
         #st.info("No template uploaded. Using default SharedShelf template.")
         st.success(f"Default SharedShelf template: {template_df.shape[1]} columns detected")
     except Exception as e:
