@@ -109,27 +109,22 @@ if urns_file and desc_file and template_df is not None:
         st.error(f"Template missing expected column for Category 2: {e}")
 
     # category 3-1: start / end dates (from descriptive metadata)
-    start = desc_df[desc_start_date_col].astype(str).str.strip().replace("nan", "")
-    end = desc_df[desc_end_date_col].astype(str).str.strip().replace("nan", "")
+    start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
+    end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
     template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
                           "Earliest Date[2560433]", "Latest Date[2560435]"]
 
     def assign_dates(start, end):
-        if (start != "") & (end != "") & (start != end):  # both present & different
-            return f"{start}-{end}", start, end, start, end
-        elif (start != "") & (end != "") & (start == end):  # both present & identical
-            return start, start, end, start, end
-        elif (start != "") & (end == ""):  # start present, end blank
-            return start, start, start, start, start
+        if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
+            return f"{int(start)}-{int(end)}", int(start), int(end), int(start), int(end)
+        elif pd.notna(start) and pd.notna(end) and (start == end):  # both present & identical
+            return int(start), int(start), int(end), int(start), int(end)
+        elif pd.notna(start) and pd.isna(end):  # start present, end blank
+            return int(start), int(start), int(start), int(start), int(start)
         else:  # both blank
             return "", "", "", "", ""
-
-    date_values = [
-        assign_dates(s.strip() if isinstance(s, str) else str(s),
-                     e.strip() if isinstance(e, str) else str(e))
-        for s, e in zip(desc_df[desc_start_date_col], desc_df[desc_end_date_col])
-    ]
     
+    date_values = [assign_dates(s, e) for s, e in zip(start, end)]
     date_df = pd.DataFrame(date_values, columns=template_date_cols)
     for col in date_df.columns:
         template_out[col] = date_df[col]
