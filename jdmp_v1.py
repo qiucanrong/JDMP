@@ -25,16 +25,13 @@ if urns_file:
 
     # drop rows with NaN or blank FILE-URN
     if "FILE-URN" in urns_df.columns:
-        urns_clean = urns_df.dropna(subset=["FILE-URN"]).copy()
-        urns_clean = urns_clean[(urns_clean["FILE-URN"].astype(str).str.strip() != "")].reset_index(drop=True)
-        st.success(f"Cleaned URNs: {len(urns_clean)} rows remaining")
+        urns_df = urns_df.dropna(subset=["FILE-URN"]).copy()
+        urns_df = urns_df[(urns_df["FILE-URN"].astype(str).str.strip() != "")].reset_index(drop=True)
+        st.success(f"Cleaned URNs: {len(urns_df)} rows remaining")
     else:
         st.error("Column 'FILE-URN' not found in URNs file")
 
-    st.subheader("Preview: Cleaned URNs Data")
-    st.dataframe(urns_clean.head(20), use_container_width=True)
-
-    urns_cols = urns_clean.columns.tolist()
+    urns_cols = urns_df.columns.tolist()
     st.subheader("URNs Columns")
 
     # select the match field (default = OBJ-OSN)
@@ -54,18 +51,18 @@ if desc_file:
     # select columns
     desc_key_col = st.selectbox("Select the match field", desc_cols, index=1)  # default: 2nd column
     desc_title_col = st.selectbox("Select the Title column", desc_cols)
-    desc_start_date_col = st.selectbox("Select the Start Date column", desc_cols)
-    desc_end_date_col = st.selectbox("Select the End Date column", desc_cols)
+    desc_start_date_col = st.selectbox("Select the Source Start Date column", desc_cols)
+    desc_end_date_col = st.selectbox("Select the Source End Date column", desc_cols)
 
 # --- validation ---
 if urns_file and desc_file:
     if "urns_key_col" in locals() and "desc_key_col" in locals():
-        urn_keys = set(urns_clean[urns_key_col].astype(str).str.strip())
+        urn_keys = set(urns_df[urns_key_col].astype(str).str.strip())
         desc_keys = set(desc_df[desc_key_col].astype(str).str.strip())
 
         # check row count
-        if len(urns_clean) != len(desc_df):
-            st.warning(f"Row count mismatch! URNs: {len(urns_clean)}, Descriptive Metadata: {len(desc_df)}")
+        if len(urns_df) != len(desc_df):
+            st.warning(f"Row count mismatch! URNs: {len(urns_df)}, Descriptive Metadata: {len(desc_df)}")
 
         # check key sets
         desc_missing_keys = urn_keys - desc_keys
@@ -91,7 +88,7 @@ if urns_file and desc_file and template_df is not None:
     st.subheader("Populate SharedShelf Template")
 
     # initialize blank template aligned to URNs row count
-    target_rows = len(urns_clean)
+    target_rows = len(urns_df)
     template_out = template_df.head(0).copy()
     template_out = template_out.reindex(range(target_rows)).reset_index(drop=True)
 
@@ -106,16 +103,44 @@ if urns_file and desc_file and template_df is not None:
 
     # category 2: FILE-URN + OBJ-OSN (from URNs file)
     try:
-        template_out.loc[:, "Filename"] = "drs:" + urns_clean["FILE-URN"].astype(str).str.strip()
-        template_out.loc[:, "Repository Classification Number[34364]"] = urns_clean["OBJ-OSN"].astype(str).str.strip()
+        template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
+        template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
     except KeyError as e:
         st.error(f"Template missing expected column for Category 2: {e}")
+
+    # category 3-1: start / end dates (from descriptive metadata)
+    start = desc_df[desc_start_date_col].astype(str).str.strip().replace("nan", "")
+    end = desc_df[desc_end_date_col].astype(str).str.strip().replace("nan", "")
+    template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
+                          "Earliest Date[2560433]", "Latest Date[2560435]"]
+
+    def assign_dates(start, end):
+        if start and end and start != end:  # both present & different
+            return f"{start}-{end}", start, end, start, end
+        elif start and end and start == end:  # both present & identical
+            return start, start, end, start, end
+        elif start and not end:  # start present, end blank
+            return start, start, start, start, start
+        else:  # both blank
+            return "", "", "", "", ""
+
+    date_values = [
+        assign_dates(s.strip() if isinstance(s, str) else str(s),
+                    e.strip() if isinstance(e, str) else str(e))
+        for s, e in zip(desc_df[desc_start_date_col], desc_df[desc_end_date_col])
+    ]
+    
+    date_df = pd.DataFrame(date_values, columns=template_date_cols)
+    for col in date_df.columns:
+        template_out[col] = date_df[col]
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
 
     # show combined preview of what’s been filled so far
-    preview_cols = ["SSID", "Filename", "File Count", "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
+    preview_cols = ["SSID", "Filename", "File Count", 
+                    "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
+    preview_cols += template_date_cols
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
     # export to Excel
