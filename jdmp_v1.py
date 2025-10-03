@@ -26,7 +26,7 @@ if urns_file:
     # drop rows with NaN or blank FILE-URN
     if "FILE-URN" in urns_df.columns:
         urns_clean = urns_df.dropna(subset=["FILE-URN"]).copy()
-        urns_clean = urns_clean[(urns_clean["FILE-URN"].astype(str).str.strip() != "")]
+        urns_clean = urns_clean[(urns_clean["FILE-URN"].astype(str).str.strip() != "")].reset_index(drop=True)
         st.success(f"Cleaned URNs: {len(urns_clean)} rows remaining")
     else:
         st.error("Column 'FILE-URN' not found in URNs file")
@@ -81,7 +81,7 @@ if urns_file and desc_file:
         # allow override (TBD)
         #override = st.checkbox("Override mismatch warning and proceed")
         #if override:
-        #    st.success("Override enabled: You can proceed to populate the template.")
+        #    st.success("Override enabled: You can proceed to populate the template")
 
     else:
         st.info("Please select the match fields for validation to run.")
