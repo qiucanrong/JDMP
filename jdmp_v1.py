@@ -125,8 +125,7 @@ if urns_file and desc_file and template_df is not None:
             return "", "", "", "", ""
 
     date_values = [
-        assign_dates(s.strip() if isinstance(s, str) else str(s),
-                    e.strip() if isinstance(e, str) else str(e))
+        assign_dates(s.astype(str).strip().replace("nan", ""), e.astype(str).strip().replace("nan", ""))
         for s, e in zip(desc_df[desc_start_date_col], desc_df[desc_end_date_col])
     ]
     
