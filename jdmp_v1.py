@@ -11,6 +11,11 @@ desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
 template_file = st.file_uploader("Upload SharedShelf Template Excel (optional)", type=["xlsx"])
 
 # --- template file handling ---
+# cached function: loads template (or any Excel) file once, then reuses result
+@st.cache_data
+def load_template(path: str):
+    return pd.read_excel(path)
+
 if template_file: # if user uploads a new template
     try:
         template_df = pd.read_excel(template_file)
@@ -21,7 +26,7 @@ if template_file: # if user uploads a new template
 
 else: # fallback to default stored template
     try:
-        template_df = pd.read_excel("SharedShelf Template.xlsx")
+        template_df = load_template("SharedShelf Template.xlsx")
         #st.info("No template uploaded. Using default SharedShelf template.")
         st.success(f"Default SharedShelf template: {template_df.shape[1]} columns detected")
     except Exception as e:
@@ -41,7 +46,7 @@ if urns_file:
         st.error("Column 'FILE-URN' not found in URNs file")
 
     urns_cols = urns_df.columns.tolist()
-    st.subheader("URNs Columns")
+    st.subheader("URNs")
 
     # select the match field (default = OBJ-OSN)
     urns_default_key_col = "OBJ-OSN"
@@ -55,7 +60,11 @@ if urns_file:
 if desc_file:
     desc_df = pd.read_excel(desc_file)
     desc_cols = desc_df.columns.tolist()
-    st.subheader("Descriptive Metadata Columns")
+    st.subheader("Descriptive Metadata")
+
+    # select types
+    metadata_type = st.selectbox("Select Metadata Type", ["Posters - Full Cataloging", "Posters - Provisional Records"])
+    geographic_type = st.selectbox("Select Geographic Type", ["Israel", "World Judaica"])
 
     # select columns
     desc_key_col = st.selectbox("Select the match field", desc_cols, index=1)  # default: 2nd column
