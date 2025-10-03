@@ -115,18 +115,18 @@ if urns_file and desc_file and template_df is not None:
                           "Earliest Date[2560433]", "Latest Date[2560435]"]
 
     def assign_dates(start, end):
-        if start and end and start != end:  # both present & different
+        if (start != "") & (end != "") & (start != end):  # both present & different
             return f"{start}-{end}", start, end, start, end
-        elif start and end and start == end:  # both present & identical
+        elif (start != "") & (end != "") & (start == end):  # both present & identical
             return start, start, end, start, end
-        elif start and not end:  # start present, end blank
+        elif (start != "") & (end == ""):  # start present, end blank
             return start, start, start, start, start
         else:  # both blank
             return "", "", "", "", ""
 
     date_values = [
-        assign_dates(s.strip() if isinstance(s, str) else str(s).replace("nan", ""),
-                     e.strip() if isinstance(e, str) else str(e).replace("nan", ""))
+        assign_dates(s.strip() if isinstance(s, str) else str(s),
+                     e.strip() if isinstance(e, str) else str(e))
         for s, e in zip(desc_df[desc_start_date_col], desc_df[desc_end_date_col])
     ]
     
