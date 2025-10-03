@@ -25,17 +25,16 @@ if urns_file:
 
     # drop rows with NaN or blank FILE-URN
     if "FILE-URN" in urns_df.columns:
-        urns_df = urns_df.dropna(subset=["FILE-URN", "OBJ-OSN"]).copy()
-        urns_df = urns_df[(urns_df["FILE-URN"].astype(str).str.strip() != "") &
-                          (urns_df["OBJ-OSN"].astype(str).str.strip() != "")]
-        st.success(f"Cleaned URNs: {len(urns_df)} rows remaining")
+        urns_clean = urns_df.dropna(subset=["FILE-URN"]).copy()
+        urns_clean = urns_clean[(urns_clean["FILE-URN"].astype(str).str.strip() != "")]
+        st.success(f"Cleaned URNs: {len(urns_clean)} rows remaining")
     else:
         st.error("Column 'FILE-URN' not found in URNs file")
 
     st.subheader("Preview: Cleaned URNs Data")
-    st.dataframe(urns_df.head(20), use_container_width=True)
+    st.dataframe(urns_clean.head(20), use_container_width=True)
 
-    urns_cols = urns_df.columns.tolist()
+    urns_cols = urns_clean.columns.tolist()
     st.subheader("URNs Columns")
 
     # select the match field (default = OBJ-OSN)
@@ -61,12 +60,12 @@ if desc_file:
 # --- validation ---
 if urns_file and desc_file:
     if "urns_key_col" in locals() and "desc_key_col" in locals():
-        urn_keys = set(urns_df[urns_key_col].astype(str).str.strip())
+        urn_keys = set(urns_clean[urns_key_col].astype(str).str.strip())
         desc_keys = set(desc_df[desc_key_col].astype(str).str.strip())
 
         # check row count
-        if len(urns_df) != len(desc_df):
-            st.warning(f"Row count mismatch! URNs: {len(urns_df)}, Descriptive Metadata: {len(desc_df)}")
+        if len(urns_clean) != len(desc_df):
+            st.warning(f"Row count mismatch! URNs: {len(urns_clean)}, Descriptive Metadata: {len(desc_df)}")
 
         # check key sets
         desc_missing_keys = urn_keys - desc_keys
@@ -92,7 +91,7 @@ if urns_file and desc_file and template_df is not None:
     st.subheader("Populate SharedShelf Template")
 
     # initialize blank template aligned to URNs row count
-    target_rows = len(urns_df)
+    target_rows = len(urns_clean)
     template_out = template_df.head(0).copy()
     template_out = template_out.reindex(range(target_rows)).reset_index(drop=True)
 
@@ -107,8 +106,8 @@ if urns_file and desc_file and template_df is not None:
 
     # category 2: FILE-URN + OBJ-OSN (from URNs file)
     try:
-        template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
-        template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
+        template_out.loc[:, "Filename"] = "drs:" + urns_clean["FILE-URN"].astype(str).str.strip()
+        template_out.loc[:, "Repository Classification Number[34364]"] = urns_clean["OBJ-OSN"].astype(str).str.strip()
     except KeyError as e:
         st.error(f"Template missing expected column for Category 2: {e}")
 
