@@ -3,21 +3,30 @@ import pandas as pd
 import io
 
 st.title("JDMP Prototype")
-st.header("Importing, Cleaning, Validation, Template Population (category 1, 2), Exporting")
+st.header("Importing, Cleaning, Validation, Template Population (category 1, 2, 3-1), Exporting")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
 desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
-template_file = st.file_uploader("Upload SharedShelf Template Excel", type=["xlsx"])
+template_file = st.file_uploader("Upload SharedShelf Template Excel (optional)", type=["xlsx"])
 
 # --- template file handling ---
-template_df = None
-if template_file:
+if template_file: # if user uploads a new template
     try:
         template_df = pd.read_excel(template_file)
-        st.success(f"Template loaded: {template_df.shape[1]} columns detected")
+        st.success(f"Custom template loaded: {template_df.shape[1]} columns detected")
     except Exception as e:
-        st.error(f"Could not read the SharedShelf template: {e}")
+        st.error(f"Could not read the uploaded template: {e}")
+        template_df = None
+
+else: # fallback to default stored template
+    try:
+        template_df = pd.read_excel("SharedSheld Template.xlsx")
+        #st.info("No template uploaded. Using default SharedShelf template.")
+        st.success(f"Default SharedShelf template: {template_df.shape[1]} columns detected")
+    except Exception as e:
+        st.error(f"Default template not found or unreadable: {e}")
+        template_df = None
 
 # --- URNs file handling ---
 if urns_file:
