@@ -36,6 +36,7 @@ else: # fallback to default stored template
 # --- URNs file handling ---
 if urns_file:
     urns_df = pd.read_excel(urns_file)
+    st.subheader("URNs")
 
     # drop rows with NaN or blank FILE-URN
     if "FILE-URN" in urns_df.columns:
@@ -46,7 +47,6 @@ if urns_file:
         st.error("Column 'FILE-URN' not found in URNs file")
 
     urns_cols = urns_df.columns.tolist()
-    st.subheader("URNs")
 
     # select the match field (default = OBJ-OSN)
     urns_default_key_col = "OBJ-OSN"
@@ -54,13 +54,15 @@ if urns_file:
         urns_default_key_index = urns_cols.index(urns_default_key_col)
     else:
         urns_default_key_index = 0
-    urns_key_col = st.selectbox("Select the match field", urns_cols, index=urns_default_key_index)
+    urns_key_col = st.selectbox("Select the Match Field", urns_cols, index=urns_default_key_index)
 
 # --- descriptive metadata file handling ---
 if desc_file:
     desc_df = pd.read_excel(desc_file)
-    desc_cols = desc_df.columns.tolist()
     st.subheader("Descriptive Metadata")
+
+    desc_cols = desc_df.columns.tolist()
+    desc_cols_with_none = [None] + desc_cols
 
     # select types
     metadata_type = st.selectbox("Select Metadata Type", [None, "Posters", "Ephemera", "Memorabilia"])
@@ -68,17 +70,31 @@ if desc_file:
     geographic_type = st.selectbox("Select Geographic Type", [None, "Israel", "World Judaica"])
 
     # select columns
-    desc_key_col = st.selectbox("Select the match field", desc_cols, index=1)  # default: 2nd column
-    desc_title_col = st.selectbox("Select the Title column", desc_cols)
-    desc_start_date_col = st.selectbox("Select the Start Date column", desc_cols)
-    desc_end_date_col = st.selectbox("Select the End Date column", desc_cols)
+    desc_key_col = st.selectbox("Select the Match Field", desc_cols, index=1)  # default: 2nd column
+    desc_title_col = st.selectbox("Select the Title Column", desc_cols_with_none)
+    desc_start_date_col = st.selectbox("Select the Start Date Column", desc_cols_with_none)
+    desc_end_date_col = st.selectbox("Select the End Date Column", desc_cols_with_none)
 
     # check if user made all required selections
-    missing_choices = []
+    missing_selections = []
     if metadata_type is None:
-        missing_choices.append("Metadata Type")
+        missing_selections.append("Metadata Type")
     if geographic_type is None:
-        missing_choices.append("Geographic Type")
+        missing_selections.append("Geographic Type")
+    if desc_title_col is None:
+        missing_selections.append("Title Column")
+    if desc_start_date_col is None:
+        missing_selections.append("Start Date Column")
+    if desc_end_date_col is None:
+        missing_selections.append("End Date Column")
+    
+    # store choices in session state
+    st.session_state["metadata_type"] = metadata_type
+    st.session_state["geographic_type"] = geographic_type
+    st.session_state["cataloging_type"] = cataloging_type
+    st.session_state["desc_title_col"] = desc_title_col
+    st.session_state["desc_start_date_col"] = desc_start_date_col
+    st.session_state["desc_end_date_col"] = desc_end_date_col
 
 # --- validation ---
 if urns_file and desc_file:
@@ -111,7 +127,7 @@ if urns_file and desc_file:
 
 # --- template population pipeline ---
 if urns_file and desc_file and template_df is not None:
-    st.subheader("Populate SharedShelf Template")
+    st.subheader("Populated SharedShelf Template")
 
     # initialize blank template aligned to URNs row count
     target_rows = len(urns_df)
@@ -127,14 +143,14 @@ if urns_file and desc_file and template_df is not None:
     except KeyError as e:
         st.error(f"Template missing expected column for Category 1: {e}")
 
-    # category 2: FILE-URN + OBJ-OSN (from URNs file)
+    # category 2: FILE-URN + OBJ-OSN (based on URNs file)
     try:
         template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
         template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
     except KeyError as e:
         st.error(f"Template missing expected column for Category 2: {e}")
 
-    # category 3-1: start / end dates (from descriptive metadata)
+    # category 3-1: start / end dates (based on descriptive metadata)
     start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
     end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
     template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
@@ -155,6 +171,9 @@ if urns_file and desc_file and template_df is not None:
     for col in date_df.columns:
         template_out[col] = date_df[col]
 
+    # category 3-2: title (based on descriptive metadata)
+
+
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
 
@@ -165,9 +184,9 @@ if urns_file and desc_file and template_df is not None:
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
     # export to Excel
-    if missing_choices:
+    if missing_selections:
         st.warning(
-            f"Please select values for: {', '.join(missing_choices)} before downloading the populated template."
+            f"Please select value(s) for {', '.join(missing_selections)} before downloading the populated template."
         )
 
     else:
