@@ -89,12 +89,12 @@ if desc_file:
         missing_selections.append("End Date Column")
     
     # store choices in session state
-    st.session_state["metadata_type"] = metadata_type
-    st.session_state["geographic_type"] = geographic_type
-    st.session_state["cataloging_type"] = cataloging_type
-    st.session_state["desc_title_col"] = desc_title_col
-    st.session_state["desc_start_date_col"] = desc_start_date_col
-    st.session_state["desc_end_date_col"] = desc_end_date_col
+    #st.session_state["metadata_type"] = metadata_type
+    #st.session_state["geographic_type"] = geographic_type
+    #st.session_state["cataloging_type"] = cataloging_type
+    #st.session_state["desc_title_col"] = desc_title_col
+    #st.session_state["desc_start_date_col"] = desc_start_date_col
+    #st.session_state["desc_end_date_col"] = desc_end_date_col
 
 # --- validation ---
 if urns_file and desc_file:
@@ -141,38 +141,68 @@ if urns_file and desc_file and template_df is not None:
         template_out.loc[:, "Repository[34349]"] = "Judaica Division, Widener Library"
         template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
     except KeyError as e:
-        st.error(f"Template missing expected column for Category 1: {e}")
+        st.error(f"Template missing expected column(s) for Category 1: {e}")
 
     # category 2: FILE-URN + OBJ-OSN (based on URNs file)
     try:
         template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
         template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
     except KeyError as e:
-        st.error(f"Template missing expected column for Category 2: {e}")
+        st.error(f"Template missing expected column(s) for Category 2: {e}")
 
     # category 3-1: start / end dates (based on descriptive metadata)
-    start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
-    end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
-    template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
-                          "Earliest Date[2560433]", "Latest Date[2560435]"]
+    if desc_start_date_col is not None and desc_end_date_col is not None:
+        start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
+        end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
+        template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
+                            "Earliest Date[2560433]", "Latest Date[2560435]"]
 
-    def assign_dates(start, end):
-        if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
-            return f"{int(start)}-{int(end)}", int(start), int(end), int(start), int(end)
-        elif pd.notna(start) and pd.notna(end) and (start == end):  # both present & identical
-            return int(start), int(start), int(end), int(start), int(end)
-        elif pd.notna(start) and pd.isna(end):  # start present, end blank
-            return int(start), int(start), int(start), int(start), int(start)
-        else:  # both blank
-            return "", "", "", "", ""
-    
-    date_values = [assign_dates(s, e) for s, e in zip(start, end)]
-    date_df = pd.DataFrame(date_values, columns=template_date_cols)
-    for col in date_df.columns:
-        template_out[col] = date_df[col]
+        def assign_dates(start, end):
+            if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
+                return f"{int(start)}-{int(end)}", int(start), int(end), int(start), int(end)
+            elif pd.notna(start) and pd.notna(end) and (start == end):  # both present & identical
+                return int(start), int(start), int(end), int(start), int(end)
+            elif pd.notna(start) and pd.isna(end):  # start present, end blank
+                return int(start), int(start), int(start), int(start), int(start)
+            else:  # both blank
+                return "", "", "", "", ""
+        
+        date_values = [assign_dates(s, e) for s, e in zip(start, end)]
+        date_df = pd.DataFrame(date_values, columns=template_date_cols)
+        for col in date_df.columns:
+            try:
+                template_out[col] = date_df[col]
+            except KeyError as e:
+                st.error(f"Template missing expected column(s) for Start/End Date: {e}")
 
     # category 3-2: title (based on descriptive metadata)
+    if metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
+        if desc_title_col not in desc_df.columns:
+            st.error("Selected Title column not found in descriptive metadata file.")
+            st.stop()
+        
+        titles = desc_df[desc_title_col].astype(str).str.strip()
 
+        # define logic only for posters for now
+        if metadata_type == "Posters":
+            if cataloging_type == "Full Cataloging":
+                populated_titles = titles
+            elif cataloging_type == "Provisional Records":
+                if geographic_type == "Israel":
+                    populated_titles = "Israel Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
+                elif geographic_type == "World Judaica":
+                    populated_titles = "Judaica Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
+                else:
+                    st.warning("Geographic Type not selected; titles left blank.")
+                    populated_titles = ""
+            else:
+                st.warning("Unknown Cataloging Type; titles left blank.")
+                populated_titles = ""
+
+        try:
+            template_out.loc[:, "Title[34338]"] = populated_titles
+        except KeyError as e:
+            st.error(f"Template missing expected column for Title: {e}")
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
@@ -180,6 +210,7 @@ if urns_file and desc_file and template_df is not None:
     # show combined preview of what’s been filled so far
     preview_cols = ["SSID", "Filename", "File Count", 
                     "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
+    preview_cols += ["Title[34338]"]
     preview_cols += template_date_cols
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
