@@ -3,7 +3,7 @@ import pandas as pd
 import io
 
 st.title("JDMP Prototype")
-st.header("Importing, Cleaning, Validation, Template Population (category 1, 2, 3-1), Exporting")
+st.header("Importing, Cleaning, Validation, Template Population (category 1, 2, 3), Exporting")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
@@ -141,21 +141,21 @@ if urns_file and desc_file and template_df is not None:
         template_out.loc[:, "Repository[34349]"] = "Judaica Division, Widener Library"
         template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
     except KeyError as e:
-        st.error(f"Template missing expected column(s) for Category 1: {e}")
+        st.error(f"Template missing expected column(s) for fixed value population: {e}")
 
     # category 2: FILE-URN + OBJ-OSN (based on URNs file)
     try:
         template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
         template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
     except KeyError as e:
-        st.error(f"Template missing expected column(s) for Category 2: {e}")
+        st.error(f"Template missing expected column(s) for URN-related population: {e}")
 
     # category 3-1: start / end dates (based on descriptive metadata)
     if desc_start_date_col is not None and desc_end_date_col is not None:
         start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
         end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
         template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
-                            "Earliest Date[2560433]", "Latest Date[2560435]"]
+                              "Earliest Date[2560433]", "Latest Date[2560435]"]
 
         def assign_dates(start, end):
             if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
@@ -173,13 +173,13 @@ if urns_file and desc_file and template_df is not None:
             try:
                 template_out[col] = date_df[col]
             except KeyError as e:
-                st.error(f"Template missing expected column(s) for Start/End Date: {e}")
+                st.error(f"Template missing expected column(s) for Start/End Date Population: {e}")
 
     # category 3-2: title (based on descriptive metadata)
     if metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
         if desc_title_col not in desc_df.columns:
             st.error("Selected Title column not found in descriptive metadata file.")
-            st.stop()
+            #st.stop()
         
         titles = desc_df[desc_title_col].astype(str).str.strip()
 
@@ -202,7 +202,7 @@ if urns_file and desc_file and template_df is not None:
         try:
             template_out.loc[:, "Title[34338]"] = populated_titles
         except KeyError as e:
-            st.error(f"Template missing expected column for Title: {e}")
+            st.error(f"Template missing expected column for Title population: {e}")
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
@@ -211,7 +211,9 @@ if urns_file and desc_file and template_df is not None:
     preview_cols = ["SSID", "Filename", "File Count", 
                     "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
     preview_cols += ["Title[34338]"]
-    preview_cols += template_date_cols
+    if "template_date_cols" in locals():
+        preview_cols += template_date_cols
+
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
     # export to Excel
