@@ -176,7 +176,7 @@ if urns_file and desc_file and template_df is not None:
                 st.error(f"Template missing expected column(s) for Start/End Date Population: {e}")
 
     # category 3-2: title (based on descriptive metadata)
-    if metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
+    if desc_title_col is not None and metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
         if desc_title_col not in desc_df.columns:
             st.error("Selected Title column not found in descriptive metadata file.")
             #st.stop()
@@ -210,7 +210,8 @@ if urns_file and desc_file and template_df is not None:
     # show combined preview of what’s been filled so far
     preview_cols = ["SSID", "Filename", "File Count", 
                     "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
-    preview_cols += ["Title[34338]"]
+    if "populated_titles" in locals():
+        preview_cols += ["Title[34338]"]
     if "template_date_cols" in locals():
         preview_cols += template_date_cols
 
