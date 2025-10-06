@@ -63,14 +63,22 @@ if desc_file:
     st.subheader("Descriptive Metadata")
 
     # select types
-    metadata_type = st.selectbox("Select Metadata Type", ["Posters - Full Cataloging", "Posters - Provisional Records"])
-    geographic_type = st.selectbox("Select Geographic Type", ["Israel", "World Judaica"])
+    metadata_type = st.selectbox("Select Metadata Type", [None, "Posters", "Ephemera", "Memorabilia"])
+    cataloging_type = st.radio("Select Cataloging Type", [ "Full Cataloging", "Provisional Records"], horizontal=True)
+    geographic_type = st.selectbox("Select Geographic Type", [None, "Israel", "World Judaica"])
 
     # select columns
     desc_key_col = st.selectbox("Select the match field", desc_cols, index=1)  # default: 2nd column
     desc_title_col = st.selectbox("Select the Title column", desc_cols)
-    desc_start_date_col = st.selectbox("Select the Source Start Date column", desc_cols)
-    desc_end_date_col = st.selectbox("Select the Source End Date column", desc_cols)
+    desc_start_date_col = st.selectbox("Select the Start Date column", desc_cols)
+    desc_end_date_col = st.selectbox("Select the End Date column", desc_cols)
+
+    # check if user made all required selections
+    missing_choices = []
+    if metadata_type is None:
+        missing_choices.append("Metadata Type")
+    if geographic_type is None:
+        missing_choices.append("Geographic Type")
 
 # --- validation ---
 if urns_file and desc_file:
@@ -157,13 +165,19 @@ if urns_file and desc_file and template_df is not None:
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
     # export to Excel
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        template_out.to_excel(writer, index=False)
-    st.download_button(
-        label="Download Populated SharedShelf Template (Excel)",
-        data=output.getvalue(),
-        file_name="JDMP_Populated_Template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    if missing_choices:
+        st.warning(
+            f"Please select values for: {', '.join(missing_choices)} before downloading the populated template."
+        )
+
+    else:
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            template_out.to_excel(writer, index=False)
+        st.download_button(
+            label="Download Populated SharedShelf Template (Excel)",
+            data=output.getvalue(),
+            file_name="JDMP_Populated_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
