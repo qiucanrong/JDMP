@@ -76,14 +76,16 @@ if desc_file:
     desc_end_date_col = st.selectbox("Select the End Date Column", desc_cols_with_none)
 
     # select description source
-    desc_source_type = st.selectbox("Choose the Source for Description",
-                                    [None, "Descriptive Metadata Column", "NONE", "OTHER"])
+    desc_source_type = st.selectbox("Select the Source for Description",
+                                    [None, "Descriptive Metadata Column", "NO DESCRIPTION NOTE", "OTHER"])
     
     if desc_source_type == "Descriptive Metadata Column":
-        desc_note_col = st.selectbox("Select the Note column", [None] + desc_cols)
+        st.markdown("&nbsp;&nbsp;&nbsp;↳ **Select Note column**")
+        desc_note_col = st.selectbox("", [None] + desc_cols)
 
     elif desc_source_type == "OTHER":
-        desc_source_text = st.text_area("Enter custom description text (will populate all rows)")
+        st.markdown("&nbsp;&nbsp;&nbsp;↳ **Enter custom Description Note")
+        desc_source_text = st.text_area("")
 
     # check if user made all required selections
     missing_selections = []
@@ -107,6 +109,10 @@ if desc_file:
     #st.session_state["desc_title_col"] = desc_title_col
     #st.session_state["desc_start_date_col"] = desc_start_date_col
     #st.session_state["desc_end_date_col"] = desc_end_date_col
+
+# --- template file handling ---
+#if template_df:
+    #template_rights_type
 
 # --- validation ---
 if urns_file and desc_file:
@@ -252,7 +258,7 @@ if urns_file and desc_file and template_df is not None:
     if desc_source_type is not None and "Description[34357]" in template_out.columns:
         if desc_source_type == "Descriptive Metadata Column" and desc_note_col:
             template_out.loc[:, "Description[34357]"] = desc_df[desc_note_col].astype(str).str.strip()
-        elif desc_source_type == "NONE":
+        elif desc_source_type == "NO DESCRIPTION NOTE":
             template_out.loc[:, "Description[34357]"] = ""
         elif desc_source_type == "OTHER" and desc_source_text:
             template_out.loc[:, "Description[34357]"] = desc_source_text
