@@ -170,19 +170,25 @@ if urns_file and desc_file and template_df is not None:
         template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
                               "Earliest Date[2560433]", "Latest Date[2560435]"]
 
+        warnings_seen = set()  # use a set to avoid duplicates
+
         def assign_dates(start, end):
             if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
+                if start > end:
+                    warnings_seen.add("One or more rows have Start Date later than End Date; Start Date used as default.")
+                    return int(start), int(start), int(start), int(start), int(start)
                 return f"{int(start)}-{int(end)}", int(start), int(end), int(start), int(end)
             elif pd.notna(start) and pd.notna(end) and (start == end):  # both present & identical
                 return int(start), int(start), int(end), int(start), int(end)
             elif pd.notna(start) and pd.isna(end):  # start present, end blank
                 return int(start), int(start), int(start), int(start), int(start)
-            elif pd.isna(start) and pd.notna(end): # start blank, end present
-                st.warning("Start Date values missing in Descriptive Metadata.")
+            elif pd.isna(start) and pd.notna(end):  # start blank, end present
+                warnings_seen.add("One or more rows have blank Start Date; End Date used as default.")
                 return int(end), int(end), int(end), int(end), int(end)
             else:  # both blank
-                return "", "", "", "", ""
-        
+                warnings_seen.add("One or more rows have both Start and End Dates missing; defaulted to 1900–2025.")
+                return "1900-2025", "1900", "2025", "1900", "2025"
+                
         date_values = [assign_dates(s, e) for s, e in zip(start, end)]
         date_df = pd.DataFrame(date_values, columns=template_date_cols)
         for col in date_df.columns:
@@ -204,13 +210,7 @@ if urns_file and desc_file and template_df is not None:
             if cataloging_type == "Full Cataloging":
                 populated_titles = titles
             elif cataloging_type == "Provisional Records":
-                if geographic_type == "Israel":
-                    populated_titles = "Israel Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
-                elif geographic_type == "World Judaica":
-                    populated_titles = "Judaica Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
-                else:
-                    st.warning("Geographic Type not selected; titles left blank.")
-                    populated_titles = ""
+                    populated_titles = titles + " - poster (Cataloging in progress)"
             else:
                 st.warning("Unknown Cataloging Type; titles left blank.")
                 populated_titles = ""
