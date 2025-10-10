@@ -3,7 +3,7 @@ import pandas as pd
 import io
 
 st.title("JDMP Prototype")
-st.header("Importing, Cleaning, Validation, Template Population (category 1, 2, 3), Exporting")
+st.header("Importing, Cleaning, Validation, Template Population (IP), Exporting")
 
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
@@ -138,15 +138,29 @@ if urns_file and desc_file and template_df is not None:
     try:
         template_out.loc[:, "SSID"] = "NEW"
         template_out.loc[:, "File Count"] = 1
-        template_out.loc[:, "Repository[34349]"] = "Judaica Division, Widener Library"
-        template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
+        template_out.loc[:, "Repository[34349]"] = "Judaica Division, Widener Library[9000347138]"
+        template_out.loc[:, "Image Repository[34365]"] = "Judaica Division, Widener Library[9000347138]"
+        template_out.loc[:, "Send To Harvard[34382]"] = True
+        template_out.loc[:, "In House Use Only[34383]"] = False
+        template_out.loc[:, "Export Only In Group[34411]"] = False
+        
+        template_fixed_val_cols = ["SSID", "File Count", "Repository[34349]", "Image Repository[34365]",
+                          "Send To Harvard[34382]", "In House Use Only[34383]", "Export Only In Group[34411]"]
+        #template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
     except KeyError as e:
         st.error(f"Template missing expected column(s) for fixed value population: {e}")
 
-    # category 2: FILE-URN + OBJ-OSN (based on URNs file)
+    # category 2: values from URNs file (FILE-URN + FILE-OSN)
     try:
         template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
-        template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["OBJ-OSN"].astype(str).str.strip()
+
+        urns_df["FILE-OSN_transformed"] = urns_df["OBJ-OSN"].astype(str).str.upper().str.replace("_", "", n=1)
+        template_out.loc[:, "Repository Classification Number[34364]"] = urns_df["FILE-OSN_transformed"]
+        template_out.loc[:, "Image Classification Number[34369]"] = urns_df["FILE-OSN_transformed"]
+        template_out.loc[:, "Repository Number[2560412]"] = urns_df["FILE-OSN_transformed"] + " (classification)"
+
+        template_urns_cols = ["Filename", "Repository Classification Number[34364]", "Image Classification Number[34369]",
+                              "Repository Number[2560412]"]
     except KeyError as e:
         st.error(f"Template missing expected column(s) for URN-related population: {e}")
 
@@ -208,8 +222,11 @@ if urns_file and desc_file and template_df is not None:
     st.session_state["template_out"] = template_out
 
     # show combined preview of what’s been filled so far
-    preview_cols = ["SSID", "Filename", "File Count", 
-                    "Repository[34349]", "Description[34357]", "Repository Classification Number[34364]"]
+    preview_cols = []
+    if "template_fixed_val_cols" in locals():
+        preview_cols += template_fixed_val_cols
+    if "template_urns_cols" in locals():
+        preview_cols += template_urns_cols
     if "populated_titles" in locals():
         preview_cols += ["Title[34338]"]
     if "template_date_cols" in locals():
