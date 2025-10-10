@@ -82,7 +82,7 @@ if desc_file:
     if desc_source_type == "Descriptive Metadata Column":
         desc_note_col = st.selectbox("Select the Note column", [None] + desc_cols)
 
-    elif desc_source_type == "Other":
+    elif desc_source_type == "OTHER":
         desc_source_text = st.text_area("Enter custom description text (will populate all rows)")
 
     # check if user made all required selections
@@ -249,12 +249,11 @@ if urns_file and desc_file and template_df is not None:
                 st.error(f"Template missing expected column(s) for Metadata Type-related population: {e}")
 
     # category 3-4: descriptive metadata population - description
-    if "Description[34357]" in template_out.columns:
+    if desc_source_type is not None and "Description[34357]" in template_out.columns:
         if desc_source_type == "Descriptive Metadata Column" and desc_note_col:
             template_out.loc[:, "Description[34357]"] = desc_df[desc_note_col].astype(str).str.strip()
         elif desc_source_type == "NONE":
             template_out.loc[:, "Description[34357]"] = ""
-            #st.info("Description left blank as 'NONE' selected.")
         elif desc_source_type == "OTHER" and desc_source_text:
             template_out.loc[:, "Description[34357]"] = desc_source_text
         else:
