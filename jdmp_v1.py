@@ -273,16 +273,17 @@ if urns_file and desc_file and template_df is not None:
 
     # category 4: copyright + crediting info
     if template_rights_type is not None:
-        if template_rights_text:
+        if template_rights_text is not None:
             try:
                 template_out.loc[:, "Rights[34363]"] = template_rights_text
                 template_out.loc[:, "Rights/Access Information[2560402]"] = template_rights_text
+
+                template_rights_cols = ["Rights[34363]", "Rights/Access Information[2560402]"]
             except KeyError as e:
                 st.error(f"Template missing expected column(s) for Copyright Information population: {e}")
         else:
             st.warning("Please enter Copyright Information.")
     
-    template_rights_cols = ["Rights[34363]", "Rights/Access Information[2560402]"]
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
@@ -301,6 +302,8 @@ if urns_file and desc_file and template_df is not None:
         preview_cols += template_meta_type_cols
     if "desc_source_type" in locals():
         preview_cols += ["Description[34357]"]
+    if "template_rights_cols" in locals():
+        preview_cols += template_rights_cols
 
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
