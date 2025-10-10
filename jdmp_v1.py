@@ -100,7 +100,7 @@ if desc_file:
         missing_selections.append("Start Date Column")
     if desc_end_date_col is None:
         missing_selections.append("End Date Column")
-    if desc_source_type is None or desc_note_col is None:
+    if desc_source_type is None:
         missing_selections.append("Description Source")
     
     # store choices in session state
@@ -259,7 +259,7 @@ if urns_file and desc_file and template_df is not None:
             template_out.loc[:, "Description[34357]"] = ""
             #st.info("Description left blank as 'NONE' selected.")
         elif desc_source_type == "OTHER" and desc_source_text:
-            template_out["Description[34357]"] = desc_source_text
+            template_out.loc[:, "Description[34357]"] = desc_source_text
         else:
             st.warning("Please select a valid Description source or text before proceeding.")
     else:
@@ -280,6 +280,8 @@ if urns_file and desc_file and template_df is not None:
         preview_cols += template_date_cols
     if "template_meta_type_cols" in locals():
         preview_cols += template_meta_type_cols
+    if "desc_source_type" in locals():
+        preview_cols += ["Description[34357]"]
 
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
