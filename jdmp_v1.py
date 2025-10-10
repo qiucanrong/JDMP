@@ -107,7 +107,7 @@ if desc_file:
     #st.session_state["desc_end_date_col"] = desc_end_date_col
 
 # --- template file handling ---
-if template_file:
+if template_df is not None:
     # select copyright info
     template_rights_type = st.selectbox("Select Copyright Information", [None, "STANDARD", "OTHER"])
     if template_rights_type == "STANDARD":
