@@ -75,6 +75,19 @@ if desc_file:
     desc_start_date_col = st.selectbox("Select the Start Date Column", desc_cols_with_none)
     desc_end_date_col = st.selectbox("Select the End Date Column", desc_cols_with_none)
 
+    # select description source
+    desc_source_type = st.selectbox("Choose the Source for Description",
+                                    [None, "Descriptive Metadata Column", "NONE", "OTHER"])
+    
+    if desc_source_type == "Descriptive Metadata Column":
+        desc_note_col = st.selectbox("Select the Note column", [None] + desc_cols)
+
+    elif desc_source_type == "Other":
+        desc_source_text = st.text_area(
+            "Enter custom description text (will populate all rows)"
+            #placeholder="e.g., Cataloging in process"
+        )
+
     # check if user made all required selections
     missing_selections = []
     if metadata_type is None:
@@ -87,6 +100,8 @@ if desc_file:
         missing_selections.append("Start Date Column")
     if desc_end_date_col is None:
         missing_selections.append("End Date Column")
+    if desc_source_type is None or desc_note_col is None:
+        missing_selections.append("Description Source")
     
     # store choices in session state
     #st.session_state["metadata_type"] = metadata_type
@@ -235,6 +250,20 @@ if urns_file and desc_file and template_df is not None:
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
             except KeyError as e:
                 st.error(f"Template missing expected column(s) for Metadata Type-related population: {e}")
+
+    # category 3-4: descriptive metadata population - description
+    if "Description[34357]" in template_out.columns:
+        if desc_source_type == "Descriptive Metadata Column" and desc_note_col:
+            template_out.loc[:, "Description[34357]"] = desc_df[desc_note_col].astype(str).str.strip()
+        elif desc_source_type == "NONE":
+            template_out.loc[:, "Description[34357]"] = ""
+            #st.info("Description left blank as 'NONE' selected.")
+        elif desc_source_type == "OTHER" and desc_source_text:
+            template_out["Description[34357]"] = desc_source_text
+        else:
+            st.warning("Please select a valid Description source or text before proceeding.")
+    else:
+        st.error("Template missing expected column for Description population: 'Description[34357]'")
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
