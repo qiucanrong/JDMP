@@ -83,10 +83,7 @@ if desc_file:
         desc_note_col = st.selectbox("Select the Note column", [None] + desc_cols)
 
     elif desc_source_type == "Other":
-        desc_source_text = st.text_area(
-            "Enter custom description text (will populate all rows)"
-            #placeholder="e.g., Cataloging in process"
-        )
+        desc_source_text = st.text_area("Enter custom description text (will populate all rows)")
 
     # check if user made all required selections
     missing_selections = []
