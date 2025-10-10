@@ -78,14 +78,10 @@ if desc_file:
     # select description source
     desc_source_type = st.selectbox("Select the Source for Description",
                                     [None, "Descriptive Metadata Column", "NO DESCRIPTION NOTE", "OTHER"])
-    
     if desc_source_type == "Descriptive Metadata Column":
-        st.markdown("&nbsp;&nbsp;&nbsp;↳ **Select Note column**")
-        desc_note_col = st.selectbox("", [None] + desc_cols)
-
+        desc_note_col = st.selectbox("Select the Note Column", [None] + desc_cols)
     elif desc_source_type == "OTHER":
-        st.markdown("&nbsp;&nbsp;&nbsp;↳ **Enter custom Description Note")
-        desc_source_text = st.text_area("")
+        desc_source_text = st.text_area("Enter Custom Description Note")
 
     # check if user made all required selections
     missing_selections = []
@@ -111,8 +107,16 @@ if desc_file:
     #st.session_state["desc_end_date_col"] = desc_end_date_col
 
 # --- template file handling ---
-#if template_df:
-    #template_rights_type
+if template_df:
+    # select copyright info
+    template_rights_type = st.selectbox("Select Copyright Information", [None, "STANDARD", "OTHER"])
+    if template_rights_type == "STANDARD":
+        template_rights_text = "The President and Fellows of Harvard College make no representation that they are the owner of the copyright; any researcher wishing to make use of an image must therefore assume all responsibility for clearing reproduction rights and for any infringement of Title 17 of the United States Code."
+    elif template_rights_type == "OTHER":
+        template_rights_type = st.text_area("Enter Custom Copyright Information")
+
+    if template_rights_type is None:
+        missing_selections.append("Copyright Information")
 
 # --- validation ---
 if urns_file and desc_file:
@@ -266,6 +270,19 @@ if urns_file and desc_file and template_df is not None:
             st.warning("Please select a valid Description source or text before proceeding.")
     else:
         st.error("Template missing expected column for Description population: 'Description[34357]'")
+
+    # category 4: copyright + crediting info
+    if template_rights_type is not None:
+        if template_rights_text:
+            try:
+                template_out.loc[:, "Rights[34363]"] = template_rights_text
+                template_out.loc[:, "Rights/Access Information[2560402]"] = template_rights_text
+            except KeyError as e:
+                st.error(f"Template missing expected column(s) for Copyright Information population: {e}")
+        else:
+            st.warning("Please enter Copyright Information.")
+    
+    template_rights_cols = ["Rights[34363]", "Rights/Access Information[2560402]"]
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
