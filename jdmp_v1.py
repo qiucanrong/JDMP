@@ -113,10 +113,19 @@ if template_df is not None:
     if template_rights_type == "STANDARD":
         template_rights_text = "The President and Fellows of Harvard College make no representation that they are the owner of the copyright; any researcher wishing to make use of an image must therefore assume all responsibility for clearing reproduction rights and for any infringement of Title 17 of the United States Code."
     elif template_rights_type == "OTHER":
-        template_rights_type = st.text_area("Enter Custom Copyright Information")
+        template_rights_text = st.text_area("Enter Custom Copyright Information")
+    
+    # select crediting info
+    template_credit_type = st.selectbox("Select Crediting Information", [
+        None, "231 Lowe", "435 Swibel", "409 Cowett E", "431 Cowett F&J", 
+        "436 Cowett W.", "437 Jacobson", "153 Hvd Litt", "OTHER"])
+    if template_credit_type == "OTHER":
+        template_credit_text = st.text_area("Enter Custom Crediting Information")
 
     if template_rights_type is None:
         missing_selections.append("Copyright Information")
+    if template_credit_type is None:
+        missing_selections.append("Crediting Information")
 
 # --- validation ---
 if urns_file and desc_file:
@@ -259,15 +268,16 @@ if urns_file and desc_file and template_df is not None:
                 st.error(f"Template missing expected column(s) for Metadata Type-related population: {e}")
 
     # category 3-4: descriptive metadata population - description
-    if desc_source_type is not None and "Description[34357]" in template_out.columns:
-        if desc_source_type == "Descriptive Metadata Column" and desc_note_col:
-            template_out.loc[:, "Description[34357]"] = desc_df[desc_note_col].astype(str).str.strip()
-        elif desc_source_type == "NO DESCRIPTION NOTE":
-            template_out.loc[:, "Description[34357]"] = ""
-        elif desc_source_type == "OTHER" and desc_source_text:
-            template_out.loc[:, "Description[34357]"] = desc_source_text
-        else:
-            st.warning("Please select a valid Description source or text before proceeding.")
+    if "Description[34357]" in template_out.columns:
+        if desc_source_type is not None:
+            if desc_source_type == "Descriptive Metadata Column" and desc_note_col:
+                template_out.loc[:, "Description[34357]"] = desc_df[desc_note_col].astype(str).str.strip()
+            elif desc_source_type == "NO DESCRIPTION NOTE":
+                template_out.loc[:, "Description[34357]"] = ""
+            elif desc_source_type == "OTHER" and desc_source_text:
+                template_out.loc[:, "Description[34357]"] = desc_source_text
+            else:
+                st.warning("Please select a valid Description source or text before proceeding.")
     else:
         st.error("Template missing expected column for Description population: 'Description[34357]'")
 
@@ -284,6 +294,14 @@ if urns_file and desc_file and template_df is not None:
         else:
             st.warning("Please enter Copyright Information.")
     
+    if template_credit_type is not None:
+        if template_credit_text is not None:
+            try:
+                template_out.loc[:, "Notes[2560400]"] = template_credit_text
+            except KeyError as e:
+                st.error(f"Template missing expected column(s) for Crediting Note population: {e}")
+        else:
+            st.error("Crediting Note cannot be blank.")
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
@@ -304,6 +322,8 @@ if urns_file and desc_file and template_df is not None:
         preview_cols += ["Description[34357]"]
     if "template_rights_cols" in locals():
         preview_cols += template_rights_cols
+    if "template_credit_type" in locals():
+        preview_cols += ["Notes[2560400]"]
 
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
