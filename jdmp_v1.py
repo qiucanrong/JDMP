@@ -216,7 +216,7 @@ if urns_file and desc_file and template_df is not None:
                 return int(end), int(end), int(end), int(end), int(end)
             else:  # both blank
                 template_date_warnings.add("One or more rows have both Start and End Dates missing; defaulted to 1900–2025.")
-                return "1900-2025", "1900", "2025", "1900", "2025"
+                return "1900-2025", 1900, 2025, 1900, 2025
         
         template_date_warnings = set()  # avoid duplicated warnings
         date_values = [assign_dates(s, e, template_date_warnings) for s, e in zip(start, end)]
