@@ -146,11 +146,10 @@ if urns_file and desc_file and template_df is not None:
         
         template_fixed_val_cols = ["SSID", "File Count", "Repository[34349]", "Image Repository[34365]",
                           "Send To Harvard[34382]", "In House Use Only[34383]", "Export Only In Group[34411]"]
-        #template_out.loc[:, "Description[34357]"] = "(HJ WORDING TBD)"
     except KeyError as e:
         st.error(f"Template missing expected column(s) for fixed value population: {e}")
 
-    # category 2: values from URNs file (FILE-URN + FILE-OSN)
+    # category 2: URNs value population - FILE-URN + FILE-OSN
     try:
         template_out.loc[:, "Filename"] = "drs:" + urns_df["FILE-URN"].astype(str).str.strip()
 
@@ -164,7 +163,7 @@ if urns_file and desc_file and template_df is not None:
     except KeyError as e:
         st.error(f"Template missing expected column(s) for URN-related population: {e}")
 
-    # category 3-1: start / end dates (based on descriptive metadata)
+    # category 3-1: descriptive metadata population - start/end dates
     if desc_start_date_col is not None and desc_end_date_col is not None:
         start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
         end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
@@ -178,6 +177,9 @@ if urns_file and desc_file and template_df is not None:
                 return int(start), int(start), int(end), int(start), int(end)
             elif pd.notna(start) and pd.isna(end):  # start present, end blank
                 return int(start), int(start), int(start), int(start), int(start)
+            elif pd.isna(start) and pd.notna(end): # start blank, end present
+                st.warning("Start Date values missing in Descriptive Metadata.")
+                return int(end), int(end), int(end), int(end), int(end)
             else:  # both blank
                 return "", "", "", "", ""
         
@@ -189,10 +191,10 @@ if urns_file and desc_file and template_df is not None:
             except KeyError as e:
                 st.error(f"Template missing expected column(s) for Start/End Date Population: {e}")
 
-    # category 3-2: title (based on descriptive metadata)
+    # category 3-2: descriptive metadata population - title
     if desc_title_col is not None and metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
         if desc_title_col not in desc_df.columns:
-            st.error("Selected Title column not found in descriptive metadata file.")
+            st.error("Selected Title column not found in Descriptive Metadata.")
             #st.stop()
         
         titles = desc_df[desc_title_col].astype(str).str.strip()
@@ -218,6 +220,19 @@ if urns_file and desc_file and template_df is not None:
         except KeyError as e:
             st.error(f"Template missing expected column for Title population: {e}")
 
+    # category 3-3: descriptive metadata population - metadata type-related
+    if metadata_type is not None:
+        if metadata_type == "Posters":
+            try:
+                template_out.loc[:, "Creator[34336]"] = ""
+                template_out.loc[:, "Materials/Techniques[34345]"] = "posters"
+                template_out.loc[:, "Work Type[34348]"] = "posters"
+                template_out.loc[:, "Materials Techniques Note[2560408]"] = "posters"
+
+                template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+            except KeyError as e:
+                st.error(f"Template missing expected column(s) for Metadata Type-related population: {e}")
+
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
 
@@ -231,6 +246,8 @@ if urns_file and desc_file and template_df is not None:
         preview_cols += ["Title[34338]"]
     if "template_date_cols" in locals():
         preview_cols += template_date_cols
+    if "template_meta_type_cols" in locals():
+        preview_cols += template_meta_type_cols
 
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
