@@ -170,7 +170,7 @@ if urns_file and desc_file and template_df is not None:
         template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
                               "Earliest Date[2560433]", "Latest Date[2560435]"]
 
-        warnings_seen = set()  # use a set to avoid duplicates
+        warnings_seen = set()  # avoid duplicated warnings
 
         def assign_dates(start, end):
             if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
@@ -188,7 +188,10 @@ if urns_file and desc_file and template_df is not None:
             else:  # both blank
                 warnings_seen.add("One or more rows have both Start and End Dates missing; defaulted to 1900–2025.")
                 return "1900-2025", "1900", "2025", "1900", "2025"
-                
+        
+        for msg in warnings_seen:
+            st.warning(msg)
+
         date_values = [assign_dates(s, e) for s, e in zip(start, end)]
         date_df = pd.DataFrame(date_values, columns=template_date_cols)
         for col in date_df.columns:
