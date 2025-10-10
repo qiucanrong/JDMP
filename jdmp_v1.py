@@ -170,12 +170,10 @@ if urns_file and desc_file and template_df is not None:
         template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
                               "Earliest Date[2560433]", "Latest Date[2560435]"]
 
-        warnings_seen = set()  # avoid duplicated warnings
-
-        def assign_dates(start, end):
+        def assign_dates(start, end, template_date_warnings):
             if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
                 if start > end:
-                    warnings_seen.add("One or more rows have Start Date later than End Date; Start Date used as default.")
+                    template_date_warnings.add("One or more rows have Start Date later than End Date; Start Date used as default.")
                     return int(start), int(start), int(start), int(start), int(start)
                 return f"{int(start)}-{int(end)}", int(start), int(end), int(start), int(end)
             elif pd.notna(start) and pd.notna(end) and (start == end):  # both present & identical
@@ -183,16 +181,18 @@ if urns_file and desc_file and template_df is not None:
             elif pd.notna(start) and pd.isna(end):  # start present, end blank
                 return int(start), int(start), int(start), int(start), int(start)
             elif pd.isna(start) and pd.notna(end):  # start blank, end present
-                warnings_seen.add("One or more rows have blank Start Date; End Date used as default.")
+                template_date_warnings.add("One or more rows have blank Start Date; End Date used as default.")
                 return int(end), int(end), int(end), int(end), int(end)
             else:  # both blank
-                warnings_seen.add("One or more rows have both Start and End Dates missing; defaulted to 1900–2025.")
+                template_date_warnings.add("One or more rows have both Start and End Dates missing; defaulted to 1900–2025.")
                 return "1900-2025", "1900", "2025", "1900", "2025"
         
-        for msg in warnings_seen:
+        template_date_warnings = set()  # avoid duplicated warnings
+        date_values = [assign_dates(s, e) for s, e in zip(start, end)]
+
+        for msg in template_date_warnings:
             st.warning(msg)
 
-        date_values = [assign_dates(s, e) for s, e in zip(start, end)]
         date_df = pd.DataFrame(date_values, columns=template_date_cols)
         for col in date_df.columns:
             try:
