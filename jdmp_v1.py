@@ -188,7 +188,7 @@ if urns_file and desc_file and template_df is not None:
                 return "1900-2025", "1900", "2025", "1900", "2025"
         
         template_date_warnings = set()  # avoid duplicated warnings
-        date_values = [assign_dates(s, e) for s, e in zip(start, end)]
+        date_values = [assign_dates(s, e, template_date_warnings) for s, e in zip(start, end)]
 
         for msg in template_date_warnings:
             st.warning(msg)
