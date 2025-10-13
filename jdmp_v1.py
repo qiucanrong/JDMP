@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+from openpyxl.styles import Border, Side
 
 st.title("JDMP Prototype")
 st.header("Importing, Cleaning, Validation, Template Population (IP), Exporting")
@@ -336,7 +337,7 @@ if urns_file and desc_file and template_df is not None:
         preview_cols += template_meta_type_cols
     if "desc_source_type" in locals():
         preview_cols += ["Description[34357]"]
-    if "template_rights_cols" in locals():
+    if "template_rights_type" in locals():
         preview_cols += template_rights_cols
     if "template_credit_type" in locals():
         preview_cols += ["Notes[2560400]"]
@@ -353,6 +354,17 @@ if urns_file and desc_file and template_df is not None:
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
             template_out.to_excel(writer, index=False)
+
+            # apply border to all cells in the exported excel
+            workbook = writer.book
+            worksheet = writer.sheets["Sheet1"]
+            thin = Side(border_style="thin", color="000000")
+            border = Border(top=thin, left=thin, right=thin, bottom=thin)
+            for row in worksheet.iter_rows(min_row=1, max_row=worksheet.max_row,
+                                           min_col=1, max_col=worksheet.max_column
+                                           ):
+                for cell in row:
+                    cell.border = border
         st.download_button(
             label="Download Populated SharedShelf Template (Excel)",
             data=output.getvalue(),
