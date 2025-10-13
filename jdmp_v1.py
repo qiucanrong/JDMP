@@ -300,7 +300,7 @@ if urns_file and desc_file and template_df is not None:
 
     # category 4: copyright + crediting info
     if template_rights_type is not None:
-        if template_rights_text != "":
+        if template_rights_text is not None:
             try:
                 template_out.loc[:, "Rights[34363]"] = template_rights_text
                 template_out.loc[:, "Rights/Access Information[2560402]"] = template_rights_text
@@ -312,7 +312,7 @@ if urns_file and desc_file and template_df is not None:
             st.warning("**Please enter Copyright Information.**")
     
     if template_credit_type is not None:
-        if template_credit_text != "":
+        if template_credit_text is not None:
             try:
                 template_out.loc[:, "Notes[2560400]"] = template_credit_text
             except KeyError as e:
