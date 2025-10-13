@@ -173,8 +173,6 @@ if urns_file and desc_file:
         st.info("Please select the match fields for validation to run.")
 
 # --- template population pipeline ---
-preview_cols = []
-
 if urns_file and desc_file and template_df is not None:
     st.subheader("Populated SharedShelf Template")
 
@@ -195,7 +193,6 @@ if urns_file and desc_file and template_df is not None:
         
         template_fixed_val_cols = ["SSID", "File Count", "Repository[34349]", "Image Repository[34365]",
                           "Send To Harvard[34382]", "In House Use Only[34383]", "Export Only In Group[34411]"]
-        preview_cols += template_fixed_val_cols
     except KeyError as e:
         st.error(f"**Template missing expected column(s) for fixed value population: {e}**")
 
@@ -210,7 +207,6 @@ if urns_file and desc_file and template_df is not None:
 
         template_urns_cols = ["Filename", "Repository Classification Number[34364]", "Image Classification Number[34369]",
                               "Repository Number[2560412]"]
-        preview_cols += template_urns_cols
     except KeyError as e:
         st.error(f"**Template missing expected column(s) for URN-related population: {e}**")
 
@@ -248,7 +244,6 @@ if urns_file and desc_file and template_df is not None:
         for col in date_df.columns:
             try:
                 template_out[col] = date_df[col]
-                preview_cols += template_date_cols
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Start/End Date Population: {e}**")
 
@@ -272,7 +267,6 @@ if urns_file and desc_file and template_df is not None:
 
         try:
             template_out.loc[:, "Title[34338]"] = populated_titles
-            preview_cols += ["Title[34338]"]
         except KeyError as e:
             st.error(f"**Template missing expected column for Title population: {e}**")
 
@@ -286,7 +280,6 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "posters"
 
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
-                preview_cols += template_meta_type_cols
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
 
@@ -301,7 +294,6 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Description[34357]"] = desc_source_text
             else:
                 st.warning("**Please select a valid Description source or text.**")
-            preview_cols += ["Description[34357]"]
     else:
         st.error("**Template missing expected column for Description population: 'Description[34357]'**")
 
@@ -313,7 +305,6 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Rights/Access Information[2560402]"] = template_rights_text
 
                 template_rights_cols = ["Rights[34363]", "Rights/Access Information[2560402]"]
-                preview_cols += template_rights_cols
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Copyright Information population: {e}**")
         else:
@@ -323,8 +314,6 @@ if urns_file and desc_file and template_df is not None:
         if template_credit_text is not None:
             try:
                 template_out.loc[:, "Notes[2560400]"] = template_credit_text
-
-                preview_cols += ["Notes[2560400]"]
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Crediting Note population: {e}**")
         else:
@@ -334,6 +323,24 @@ if urns_file and desc_file and template_df is not None:
     st.session_state["template_out"] = template_out
 
     # show combined preview of what’s been filled so far
+    preview_cols = []
+    if "template_fixed_val_cols" in locals():
+        preview_cols += template_fixed_val_cols
+    if "template_urns_cols" in locals():
+        preview_cols += template_urns_cols
+    if "populated_titles" in locals():
+        preview_cols += ["Title[34338]"]
+    if "template_date_cols" in locals():
+        preview_cols += template_date_cols
+    if "template_meta_type_cols" in locals():
+        preview_cols += template_meta_type_cols
+    if "desc_source_type" in locals():
+        preview_cols += ["Description[34357]"]
+    if "template_rights_cols" in locals():
+        preview_cols += template_rights_cols
+    if "template_credit_type" in locals():
+        preview_cols += ["Notes[2560400]"]
+
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
     # export to Excel
