@@ -21,7 +21,7 @@ if template_file: # if user uploads a new template
         template_df = pd.read_excel(template_file)
         st.success(f"Custom template loaded: {template_df.shape[1]} columns detected")
     except Exception as e:
-        st.error(f"Could not read the uploaded template: {e}")
+        st.error(f"**Could not read the uploaded template: {e}**")
         template_df = None
 
 else: # fallback to default stored template
@@ -30,7 +30,7 @@ else: # fallback to default stored template
         #st.info("No template uploaded. Using default SharedShelf template.")
         st.success(f"Default SharedShelf template: {template_df.shape[1]} columns detected")
     except Exception as e:
-        st.error(f"Default template not found or unreadable: {e}")
+        st.error(f"**Default template not found or unreadable: {e}**")
         template_df = None
 
 # --- URNs file handling ---
@@ -44,7 +44,7 @@ if urns_file:
         urns_df = urns_df[(urns_df["FILE-URN"].astype(str).str.strip() != "")].reset_index(drop=True)
         st.success(f"Cleaned URNs: {len(urns_df)} rows remaining")
     else:
-        st.error("Column 'FILE-URN' not found in URNs file")
+        st.error("**Column 'FILE-URN' not found in URNs file.**")
 
     urns_cols = urns_df.columns.tolist()
 
@@ -56,7 +56,9 @@ if urns_file:
         urns_default_key_index = 0
     urns_key_col = st.selectbox("Select the Match Field", urns_cols, index=urns_default_key_index)
 
-# --- descriptive metadata file handling ---
+# --- descriptive metadata file handling (relevant selections included) ---
+missing_selections = []
+
 if desc_file:
     desc_df = pd.read_excel(desc_file)
     st.subheader("Descriptive Metadata")
@@ -84,7 +86,6 @@ if desc_file:
         desc_source_text = st.text_area("Enter Custom Description Note")
 
     # check if user made all required selections
-    missing_selections = []
     if metadata_type is None:
         missing_selections.append("Metadata Type")
     if geographic_type is None:
@@ -106,7 +107,7 @@ if desc_file:
     #st.session_state["desc_start_date_col"] = desc_start_date_col
     #st.session_state["desc_end_date_col"] = desc_end_date_col
 
-# --- template file handling ---
+# --- template-related selections ---
 if template_df is not None:
     # select copyright info
     template_rights_type = st.selectbox("Select Copyright Information", [None, "STANDARD", "OTHER"])
@@ -119,9 +120,24 @@ if template_df is not None:
     template_credit_type = st.selectbox("Select Crediting Information", [
         None, "231 Lowe", "435 Swibel", "409 Cowett E", "431 Cowett F&J", 
         "436 Cowett W.", "437 Jacobson", "153 Hvd Litt", "OTHER"])
-    if template_credit_type == "OTHER":
+    if template_credit_type == "231 Lowe":
+        template_credit_text = "Digitization funded from the income of the Joe and Emily Lowe Foundation Book Fund for Judaica in the Harvard College Library (Fund 560231)."
+    elif template_credit_type == "435 Swibel":
+        template_credit_text = "Digitization funded from the income of the Howard J. Swibel Library Preservation Fund in the Harvard College Library (Fund 560435)."
+    elif template_credit_type == "409 Cowett E":
+        template_credit_text = "Digitization funded from the income of the Edward M. Cowett 1951 Memorial Judaica Preservation Fund in the Harvard College Library (Fund 560409)."
+    elif template_credit_type == "431 Cowett F&J":
+        template_credit_text = "Digitization funded from the income of the Florence and Joseph B. Cowett Memorial Fund for Judaica Preservation in the Harvard College Library (Fund 560431)."
+    elif template_credit_type == "436 Cowett W.":
+        template_credit_text = "Digitization funded from the income of the Wilbur A. Cowett Judaica Preservation Fund in the Harvard College Library (Fund 560436)."
+    elif template_credit_type == "437 Jacobson":
+        template_credit_text = "Digitization funded from the income of the Joan Leiman Jacobson Fund for the Preservation of Judaica in the Harvard College Library (Fund 560437)."
+    elif template_credit_type == "153 Hvd Litt":
+        template_credit_text = "Digitization funded from the income of the Harvard-Littauer Judaica Endowment in the Harvard College Library (Fund 560153)."
+    elif template_credit_type == "OTHER":
         template_credit_text = st.text_area("Enter Custom Crediting Information")
 
+    # check if user made all required selections
     if template_rights_type is None:
         missing_selections.append("Copyright Information")
     if template_credit_type is None:
@@ -135,14 +151,14 @@ if urns_file and desc_file:
 
         # check row count
         if len(urns_df) != len(desc_df):
-            st.warning(f"Row count mismatch! URNs: {len(urns_df)}, Descriptive Metadata: {len(desc_df)}")
+            st.warning(f"**Row count mismatch! URNs: {len(urns_df)}, Descriptive Metadata: {len(desc_df)}**")
 
         # check key sets
         desc_missing_keys = urn_keys - desc_keys
         urns_missing_keys = desc_keys - urn_keys
 
         if desc_missing_keys or urns_missing_keys:
-            st.warning("Key mismatch detected!")
+            st.warning("**Key mismatch detected!**")
             if desc_missing_keys:
                 st.write(f"URNs not in Descriptive Metadata: {list(desc_missing_keys)}")
             if urns_missing_keys:
@@ -157,6 +173,8 @@ if urns_file and desc_file:
         st.info("Please select the match fields for validation to run.")
 
 # --- template population pipeline ---
+preview_cols = []
+
 if urns_file and desc_file and template_df is not None:
     st.subheader("Populated SharedShelf Template")
 
@@ -177,8 +195,9 @@ if urns_file and desc_file and template_df is not None:
         
         template_fixed_val_cols = ["SSID", "File Count", "Repository[34349]", "Image Repository[34365]",
                           "Send To Harvard[34382]", "In House Use Only[34383]", "Export Only In Group[34411]"]
+        preview_cols += template_fixed_val_cols
     except KeyError as e:
-        st.error(f"Template missing expected column(s) for fixed value population: {e}")
+        st.error(f"**Template missing expected column(s) for fixed value population: {e}**")
 
     # category 2: URNs value population - FILE-URN + FILE-OSN
     try:
@@ -191,8 +210,9 @@ if urns_file and desc_file and template_df is not None:
 
         template_urns_cols = ["Filename", "Repository Classification Number[34364]", "Image Classification Number[34369]",
                               "Repository Number[2560412]"]
+        preview_cols += template_urns_cols
     except KeyError as e:
-        st.error(f"Template missing expected column(s) for URN-related population: {e}")
+        st.error(f"**Template missing expected column(s) for URN-related population: {e}**")
 
     # category 3-1: descriptive metadata population - start/end dates
     if desc_start_date_col is not None and desc_end_date_col is not None:
@@ -228,13 +248,14 @@ if urns_file and desc_file and template_df is not None:
         for col in date_df.columns:
             try:
                 template_out[col] = date_df[col]
+                preview_cols += template_date_cols
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Start/End Date Population: {e}**")
 
     # category 3-2: descriptive metadata population - title
-    if desc_title_col is not None and metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
+    if (desc_title_col and metadata_type and cataloging_type and cataloging_type) is not None:
         if desc_title_col not in desc_df.columns:
-            st.error("Selected Title column not found in Descriptive Metadata.")
+            st.error("**Selected Title column not found in Descriptive Metadata.**")
             #st.stop()
         
         titles = desc_df[desc_title_col].astype(str).str.strip()
@@ -246,13 +267,14 @@ if urns_file and desc_file and template_df is not None:
             elif cataloging_type == "Provisional Records":
                     populated_titles = titles + " - poster (Cataloging in progress)"
             else:
-                st.warning("Unknown Cataloging Type; titles left blank.")
+                st.warning("**Unknown Cataloging Type; titles left blank.**")
                 populated_titles = ""
 
         try:
             template_out.loc[:, "Title[34338]"] = populated_titles
+            preview_cols += ["Title[34338]"]
         except KeyError as e:
-            st.error(f"Template missing expected column for Title population: {e}")
+            st.error(f"**Template missing expected column for Title population: {e}**")
 
     # category 3-3: descriptive metadata population - metadata type-related
     if metadata_type is not None:
@@ -264,8 +286,9 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "posters"
 
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+                preview_cols += template_meta_type_cols
             except KeyError as e:
-                st.error(f"Template missing expected column(s) for Metadata Type-related population: {e}")
+                st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
 
     # category 3-4: descriptive metadata population - description
     if "Description[34357]" in template_out.columns:
@@ -277,9 +300,10 @@ if urns_file and desc_file and template_df is not None:
             elif desc_source_type == "OTHER" and desc_source_text:
                 template_out.loc[:, "Description[34357]"] = desc_source_text
             else:
-                st.warning("Please select a valid Description source or text before proceeding.")
+                st.warning("**Please select a valid Description source or text.**")
+            preview_cols += ["Description[34357]"]
     else:
-        st.error("Template missing expected column for Description population: 'Description[34357]'")
+        st.error("**Template missing expected column for Description population: 'Description[34357]'**")
 
     # category 4: copyright + crediting info
     if template_rights_type is not None:
@@ -289,48 +313,33 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Rights/Access Information[2560402]"] = template_rights_text
 
                 template_rights_cols = ["Rights[34363]", "Rights/Access Information[2560402]"]
+                preview_cols += template_rights_cols
             except KeyError as e:
-                st.error(f"Template missing expected column(s) for Copyright Information population: {e}")
+                st.error(f"**Template missing expected column(s) for Copyright Information population: {e}**")
         else:
-            st.warning("Please enter Copyright Information.")
+            st.warning("**Please enter Copyright Information.**")
     
     if template_credit_type is not None:
         if template_credit_text is not None:
             try:
                 template_out.loc[:, "Notes[2560400]"] = template_credit_text
+
+                preview_cols += ["Notes[2560400]"]
             except KeyError as e:
-                st.error(f"Template missing expected column(s) for Crediting Note population: {e}")
+                st.error(f"**Template missing expected column(s) for Crediting Note population: {e}**")
         else:
-            st.error("Crediting Note cannot be blank.")
+            st.error("**Crediting Note cannot be blank.**")
 
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
 
     # show combined preview of what’s been filled so far
-    preview_cols = []
-    if "template_fixed_val_cols" in locals():
-        preview_cols += template_fixed_val_cols
-    if "template_urns_cols" in locals():
-        preview_cols += template_urns_cols
-    if "populated_titles" in locals():
-        preview_cols += ["Title[34338]"]
-    if "template_date_cols" in locals():
-        preview_cols += template_date_cols
-    if "template_meta_type_cols" in locals():
-        preview_cols += template_meta_type_cols
-    if "desc_source_type" in locals():
-        preview_cols += ["Description[34357]"]
-    if "template_rights_cols" in locals():
-        preview_cols += template_rights_cols
-    if "template_credit_type" in locals():
-        preview_cols += ["Notes[2560400]"]
-
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
     # export to Excel
     if missing_selections:
         st.warning(
-            f"Please select value(s) for {', '.join(missing_selections)} before downloading the populated template."
+            f"**Please select value(s) for {', '.join(missing_selections)} before downloading the populated template.**"
         )
 
     else:
