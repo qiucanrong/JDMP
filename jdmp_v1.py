@@ -204,7 +204,7 @@ if urns_file and desc_file and template_df is not None:
         def assign_dates(start, end, template_date_warnings):
             if pd.notna(start) and pd.notna(end) and (start != end):  # both present & different
                 if start > end:
-                    template_date_warnings.add("One or more rows have Start Date later than End Date; Start Date used as default.")
+                    template_date_warnings.add("**One or more rows have Start Date later than End Date; Start Date used as default.**")
                     return int(start), int(start), int(start), int(start), int(start)
                 return f"{int(start)}-{int(end)}", int(start), int(end), int(start), int(end)
             elif pd.notna(start) and pd.notna(end) and (start == end):  # both present & identical
@@ -212,10 +212,10 @@ if urns_file and desc_file and template_df is not None:
             elif pd.notna(start) and pd.isna(end):  # start present, end blank
                 return int(start), int(start), int(start), int(start), int(start)
             elif pd.isna(start) and pd.notna(end):  # start blank, end present
-                template_date_warnings.add("One or more rows have blank Start Date; End Date used as default.")
+                template_date_warnings.add("**One or more rows have blank Start Date; End Date used as default.**")
                 return int(end), int(end), int(end), int(end), int(end)
             else:  # both blank
-                template_date_warnings.add("One or more rows have both Start and End Dates missing; defaulted to 1900–2025.")
+                template_date_warnings.add("**One or more rows have both Start and End Dates missing; defaulted to 1900–2025.**")
                 return "1900-2025", 1900, 2025, 1900, 2025
         
         template_date_warnings = set()  # avoid duplicated warnings
@@ -229,7 +229,7 @@ if urns_file and desc_file and template_df is not None:
             try:
                 template_out[col] = date_df[col]
             except KeyError as e:
-                st.error(f"Template missing expected column(s) for Start/End Date Population: {e}")
+                st.error(f"**Template missing expected column(s) for Start/End Date Population: {e}**")
 
     # category 3-2: descriptive metadata population - title
     if desc_title_col is not None and metadata_type is not None and cataloging_type is not None and cataloging_type is not None:
