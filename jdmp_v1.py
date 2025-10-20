@@ -330,7 +330,7 @@ if urns_file and desc_file and template_df is not None:
             if geographic_type == "Israel":
                 template_out.loc[:, "Artstor Country[34356]"] = "Israel [[113112980]]"
             elif geographic_type == "World Judaica" and artstor_country_col is not None:
-                desc_country = desc_df[artstor_country_col].astype(str).str.strip().str.lower()
+                desc_country = desc_df[artstor_country_col].astype(str).str.strip()
                 country_merged = pd.merge(desc_country.to_frame("Country"), country_code_df, how="left", on="Country")
                 country_merged["Artstor Country[34356]"] = country_merged.apply(
                     lambda x: f"{x['Country']} [[{x['Code']}]]" if pd.notna(x["Code"]) else x["Country"], axis=1)
