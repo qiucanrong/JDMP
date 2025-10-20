@@ -73,6 +73,8 @@ if desc_file:
     geographic_type = st.selectbox("Select Geographic Type", [None, "Israel", "World Judaica"])
     if geographic_type == "World Judaica":
         artstor_country_col = st.selectbox("Select the Artstor Country Column", desc_cols_with_none)
+    else:
+        artstor_country_col = ""
 
     # select columns
     desc_key_col = st.selectbox("Select the Match Field", desc_cols_with_none, index=2)  # default: 2nd column
@@ -333,12 +335,20 @@ if urns_file and desc_file and template_df is not None:
                 desc_country = desc_df[artstor_country_col].astype(str).str.strip()
                 country_merged = pd.merge(desc_country.to_frame("Country"), country_code_df, how="left", on="Country")
                 country_merged["Artstor Country[34356]"] = country_merged.apply(
-                    lambda x: f"{x['Country']} [[{x['Code']}]]" if pd.notna(x["Code"]) else x["Country"], axis=1)
+                    lambda x: x["Code"]
+                    if pd.notna(x["Code"])
+                    else "",
+                    axis=1
+                )
                 template_out.loc[:, "Artstor Country[34356]"] = country_merged["Artstor Country[34356]"]
-                # identify any missing matches
-                missing_codes = country_merged.loc[country_merged["Code"].isna(), "Country"].unique()
-                if len(missing_codes) > 0:
-                    st.warning(f"**No code for 'Artstor Country[34356]' found for the following countries: {', '.join(missing_codes)}**")
+
+                missing_countries = country_merged.loc[country_merged["Code"].isna() & (country_merged["Country"] != ""), "Country"].unique()
+                blank_countries = country_merged.loc[country_merged["Country"] == "", "Country"]
+
+                if len(missing_countries) > 0:
+                    st.warning(f"**No code for 'Artstor Country[34356]' found for the following countries: {', '.join(missing_countries)}**")
+                if len(blank_countries) > 0:
+                    st.warning("**One or more rows in the Artstor Country column are blank; left blank in the output.**")
     else:
         st.error("**Template missing expected column for Description population: 'Artstor Country[34356]'**")
 
