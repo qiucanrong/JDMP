@@ -93,8 +93,9 @@ if desc_file:
         missing_selections.append("Metadata Type")
     if geographic_type is None:
         missing_selections.append("Geographic Type")
-    if artstor_country_col and artstor_country_col is None:
-        missing_selections.append("Artstor Country Column")
+    if geographic_type is not None:
+        if artstor_country_col is None:
+            missing_selections.append("Artstor Country Column")
     if desc_key_col is None:
         missing_selections.append("Match Field")
     if desc_title_col is None:
