@@ -71,9 +71,11 @@ if desc_file:
     metadata_type = st.selectbox("Select Metadata Type", [None, "Posters", "Ephemera", "Memorabilia"])
     cataloging_type = st.radio("Select Cataloging Type", [ "Full Cataloging", "Provisional Records"], horizontal=True)
     geographic_type = st.selectbox("Select Geographic Type", [None, "Israel", "World Judaica"])
+    if geographic_type == "World Judaica":
+        artstor_country_col = st.selectbox("Select the Artstor Country Column", desc_cols_with_none)
 
     # select columns
-    desc_key_col = st.selectbox("Select the Match Field", desc_cols, index=1)  # default: 2nd column
+    desc_key_col = st.selectbox("Select the Match Field", desc_cols_with_none, index=2)  # default: 2nd column
     desc_title_col = st.selectbox("Select the Title Column", desc_cols_with_none)
     desc_start_date_col = st.selectbox("Select the Start Date Column", desc_cols_with_none)
     desc_end_date_col = st.selectbox("Select the End Date Column", desc_cols_with_none)
@@ -91,6 +93,10 @@ if desc_file:
         missing_selections.append("Metadata Type")
     if geographic_type is None:
         missing_selections.append("Geographic Type")
+    if artstor_country_col and artstor_country_col is None:
+        missing_selections.append("Artstor Country Column")
+    if desc_key_col is None:
+        missing_selections.append("Match Field")
     if desc_title_col is None:
         missing_selections.append("Title Column")
     if desc_start_date_col is None:
@@ -107,6 +113,16 @@ if desc_file:
     #st.session_state["desc_title_col"] = desc_title_col
     #st.session_state["desc_start_date_col"] = desc_start_date_col
     #st.session_state["desc_end_date_col"] = desc_end_date_col
+
+# --- load country code translation table ---
+try:
+    country_code_df = load_template("Geographic Codes to Look Up_test.xlsx")
+    country_code_df.columns = country_code_df.columns.str.strip().str.lower()
+    if not {"country", "code"}.issubset(country_code_df.columns):
+        country_code_df = pd.DataFrame(columns=["country", "code"])
+except Exception as e:
+    st.warning(f"**Could not load Country-Code translation table: {e}**")
+    country_code_df = pd.DataFrame(columns=["country", "code"])
 
 # --- template-related selections ---
 if template_df is not None:
@@ -298,6 +314,34 @@ if urns_file and desc_file and template_df is not None:
     else:
         st.error("**Template missing expected column for Description population: 'Description[34357]'**")
 
+    # category 3-5: descriptive metadata population - culture
+    if "Culture[34337]" in template_out.columns:
+        if geographic_type is not None:
+            if geographic_type == "Israel":
+                template_out[:, "Culture[34337]"] = "Israeli [[AAT 300195487]]"
+            elif geographic_type == "World Judaica":
+                template_out[:, "Culture[34337]"] = "Jewish [[11282373]]"
+    else:
+        st.error("**Template missing expected column for Description population: 'Culture[34337]'**")
+
+    # category 3-6: descriptive metadata population - artstor country
+    if "Artstor Country[34356]" in template_out.columns:
+        if geographic_type is not None:
+            if geographic_type == "Israel":
+                template_out[:, "Artstor Country[34356]"] = "Israel [[113112980]]"
+            elif geographic_type == "World Judaica" and artstor_country_col is not None:
+                desc_country = desc_df[artstor_country_col].astype(str).str.strip().str.lower()
+                country_merged = pd.merge(desc_country.to_frame("country"), country_code_df, how="left", on="country")
+                country_merged["Artstor Country[34356]"] = country_merged.apply(
+                    lambda x: f"{x['country']} [[{x['code']}]]" if pd.notna(x["code"]) else x["country"], axis=1)
+                template_out.loc[:, "Artstor Country[34356]"] = country_merged["Artstor Country[34356]"]
+                # identify any missing matches
+                missing_codes = country_merged.loc[country_merged["code"].isna(), "country"].unique()
+                if len(missing_codes) > 0:
+                    st.warning(f"**No code for 'Artstor Country[34356]' found for the following countries: {', '.join(missing_codes)}**")
+    else:
+        st.error("**Template missing expected column for Description population: 'Artstor Country[34356]'**")
+
     # category 4: copyright + crediting info
     if template_rights_type is not None:
         if template_rights_text != "":
@@ -331,6 +375,8 @@ if urns_file and desc_file and template_df is not None:
         preview_cols += ["Title[34338]"]
     if "template_date_cols" in locals():
         preview_cols += template_date_cols
+    if "geographic_type" in locals():
+        preview_cols += ["Culture[34337]", "Artstor Country[34356]"]
     if "template_meta_type_cols" in locals():
         preview_cols += template_meta_type_cols
     if "desc_source_type" in locals():
