@@ -342,7 +342,7 @@ if urns_file and desc_file and template_df is not None:
                 )
                 template_out.loc[:, "Artstor Country[34356]"] = country_merged["Artstor Country[34356]"]
 
-                missing_countries = country_merged.loc[country_merged["Code"].isna() & (country_merged["Country"] != ""), "Country"].unique()
+                missing_countries = country_merged.loc[country_merged["Code"].isna() & (country_merged["Country"] != "nan"), "Country"].unique()
                 blank_countries = country_merged.loc[country_merged["Country"] == "nan" , "Country"]
 
                 if len(missing_countries) > 0:
