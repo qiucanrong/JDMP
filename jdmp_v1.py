@@ -118,12 +118,11 @@ if desc_file:
 # --- load country code translation table ---
 try:
     country_code_df = load_template("Geographic Codes to Look Up_test.xlsx")
-    country_code_df.columns = country_code_df.columns.str.strip().str.lower()
-    if not {"country", "code"}.issubset(country_code_df.columns):
-        country_code_df = pd.DataFrame(columns=["country", "code"])
+    if not {"Country", "Code"}.issubset(country_code_df.columns):
+        country_code_df = pd.DataFrame(columns=["Country", "Code"])
 except Exception as e:
     st.warning(f"**Could not load Country-Code translation table: {e}**")
-    country_code_df = pd.DataFrame(columns=["country", "code"])
+    country_code_df = pd.DataFrame(columns=["Country", "Code"])
 
 # --- template-related selections ---
 if template_df is not None:
@@ -266,7 +265,7 @@ if urns_file and desc_file and template_df is not None:
                 st.error(f"**Template missing expected column(s) for Start/End Date Population: {e}**")
 
     # category 3-2: descriptive metadata population - title
-    if (desc_title_col and metadata_type and cataloging_type and cataloging_type) is not None:
+    if (desc_title_col and metadata_type and cataloging_type) is not None:
         if desc_title_col not in desc_df.columns:
             st.error("**Selected Title column not found in Descriptive Metadata.**")
             #st.stop()
@@ -319,9 +318,9 @@ if urns_file and desc_file and template_df is not None:
     if "Culture[34337]" in template_out.columns:
         if geographic_type is not None:
             if geographic_type == "Israel":
-                template_out[:, "Culture[34337]"] = "Israeli [[AAT 300195487]]"
+                template_out.loc[:, "Culture[34337]"] = "Israeli [[AAT 300195487]]"
             elif geographic_type == "World Judaica":
-                template_out[:, "Culture[34337]"] = "Jewish [[11282373]]"
+                template_out.loc[:, "Culture[34337]"] = "Jewish [[11282373]]"
     else:
         st.error("**Template missing expected column for Description population: 'Culture[34337]'**")
 
@@ -329,15 +328,15 @@ if urns_file and desc_file and template_df is not None:
     if "Artstor Country[34356]" in template_out.columns:
         if geographic_type is not None:
             if geographic_type == "Israel":
-                template_out[:, "Artstor Country[34356]"] = "Israel [[113112980]]"
+                template_out.loc[:, "Artstor Country[34356]"] = "Israel [[113112980]]"
             elif geographic_type == "World Judaica" and artstor_country_col is not None:
                 desc_country = desc_df[artstor_country_col].astype(str).str.strip().str.lower()
-                country_merged = pd.merge(desc_country.to_frame("country"), country_code_df, how="left", on="country")
+                country_merged = pd.merge(desc_country.to_frame("Country"), country_code_df, how="left", on="Country")
                 country_merged["Artstor Country[34356]"] = country_merged.apply(
-                    lambda x: f"{x['country']} [[{x['code']}]]" if pd.notna(x["code"]) else x["country"], axis=1)
+                    lambda x: f"{x['Country']} [[{x['Code']}]]" if pd.notna(x["Code"]) else x["Country"], axis=1)
                 template_out.loc[:, "Artstor Country[34356]"] = country_merged["Artstor Country[34356]"]
                 # identify any missing matches
-                missing_codes = country_merged.loc[country_merged["code"].isna(), "country"].unique()
+                missing_codes = country_merged.loc[country_merged["Code"].isna(), "Country"].unique()
                 if len(missing_codes) > 0:
                     st.warning(f"**No code for 'Artstor Country[34356]' found for the following countries: {', '.join(missing_codes)}**")
     else:
