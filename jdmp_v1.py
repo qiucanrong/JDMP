@@ -343,7 +343,7 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Artstor Country[34356]"] = country_merged["Artstor Country[34356]"]
 
                 missing_countries = country_merged.loc[country_merged["Code"].isna() & (country_merged["Country"] != ""), "Country"].unique()
-                blank_countries = country_merged.loc[country_merged["Country"] == "" or country_merged["Country"] == "nan" , "Country"]
+                blank_countries = country_merged.loc[country_merged["Country"] == "nan" , "Country"]
 
                 if len(missing_countries) > 0:
                     st.warning(f"**No code for 'Artstor Country[34356]' found for the following countries: {', '.join(missing_countries)}**")
