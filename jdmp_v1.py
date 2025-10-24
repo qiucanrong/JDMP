@@ -59,18 +59,31 @@ if urns_file:
 
 # --- URN image preview utility ---
 if urns_file and "FILE-URN" in urns_df.columns:
-    if st.button("Preview URN Images"):
-        st.session_state["show_urn_images"] = not st.session_state.get("show_images", False)
-
-    if st.session_state.get("show_urn_images", False):
+    with st.expander("🖼️ Preview URN Images (click to expand)"):
         urns_df["FILE-URN"] = urns_df["FILE-URN"].astype(str).str.strip()
         urns_df["image_URL"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
         st.success(f"{len(urns_df)} URNs processed. Use the slider to preview associated images below.")
 
         # slider to browse
-        urns_image_index = st.slider("Select Image Index", 0, len(urns_df) - 1, 0)
-        urns_image_row = urns_df.iloc[urns_image_index]
+        #urns_image_index = st.slider("Select Image Index", 0, len(urns_df) - 1, 0)
 
+        # previous / next buttons
+        if "image_index" not in st.session_state:
+            st.session_state.image_index = 0
+
+        col_prev, col_next = st.columns([1, 1])
+        with col_prev:
+            if st.button("⬅️ Previous") and st.session_state.image_index > 0:
+                st.session_state.image_index -= 1
+        with col_next:
+            if st.button("Next ➡️") and st.session_state.image_index < len(urns_df) - 1:
+                st.session_state.image_index += 1
+
+        urns_image_index = st.session_state.image_index
+        urns_image_row = urns_df.iloc[urns_image_index]
+        st.markdown(f"**Showing image {urns_image_index+1} of {len(urns_df)}**")
+
+        urns_image_row = urns_df.iloc[urns_image_index]
         st.markdown(f"**URN:** {urns_image_row['FILE-URN']}")
         st.markdown(f"[Open in browser]({urns_image_row['image_URL']})")
 
