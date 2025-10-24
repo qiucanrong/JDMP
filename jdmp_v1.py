@@ -59,7 +59,10 @@ if urns_file:
 
 # --- URN image preview utility ---
 if urns_file and "FILE-URN" in urns_df.columns:
-    with st.expander("🖼️ Preview URN Images (click to expand)"):
+    if st.button("Preview URN Images"):
+        st.session_state["show_urn_images"] = not st.session_state.get("show_images", False)
+
+    if st.session_state.get("show_urn_images", False):
         urns_df["FILE-URN"] = urns_df["FILE-URN"].astype(str).str.strip()
         urns_df["image_URL"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
         st.success(f"{len(urns_df)} URNs processed. Use the slider to preview associated images below.")
@@ -146,7 +149,7 @@ except Exception as e:
     country_code_df = pd.DataFrame(columns=["Country", "Code"])
 
 # --- template-related selections ---
-if template_df is not None:
+if urns_file and desc_file and template_df:
     # select copyright info
     template_rights_type = st.selectbox("Select Copyright Information", [None, "STANDARD", "OTHER"])
     if template_rights_type == "STANDARD":
@@ -249,7 +252,7 @@ if urns_file and desc_file and template_df is not None:
         st.error(f"**Template missing expected column(s) for URN-related population: {e}**")
 
     # category 3-1: descriptive metadata population - start/end dates
-    if desc_start_date_col is not None and desc_end_date_col is not None:
+    if (desc_start_date_col and desc_end_date_col) is not None:
         start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
         end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
         template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
