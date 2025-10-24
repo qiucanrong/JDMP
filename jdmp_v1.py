@@ -57,6 +57,24 @@ if urns_file:
         urns_default_key_index = 0
     urns_key_col = st.selectbox("Select the Match Field", urns_cols, index=urns_default_key_index)
 
+# --- URN image preview ---
+if "FILE-URN" in urns_df.columns:
+    urns_df["FILE-URN"] = urns_df["FILE-URN"].astype(str).str.strip()
+    urns_df["image_URL"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
+    st.success(f"{len(urns_df)} URNs processed. You can now preview associated images below.")
+
+    # slider to browse
+    index = st.slider("Select Image Index", 0, len(urns_df) - 1, 0)
+    selected_row = urns_df.iloc[index]
+
+    st.markdown(f"**URN:** {selected_row['OBJ-URN']}")
+    st.markdown(f"[Open in browser]({selected_row['Image_URL']})")
+
+    try:
+        st.image(selected_row["Image_URL"], use_container_width=True)
+    except Exception as e:
+        st.warning(f"Could not load image for URN {selected_row['OBJ-URN']}: {e}")
+
 # --- descriptive metadata file handling (relevant selections included) ---
 missing_selections = []
 
