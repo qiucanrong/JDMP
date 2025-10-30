@@ -55,7 +55,7 @@ if urns_file:
         urns_default_key_index = urns_cols.index(urns_default_key_col)
     else:
         urns_default_key_index = 0
-    urns_key_col = st.selectbox("Select the Match Field", urns_cols, index=urns_default_key_index)
+    urns_key_col = st.selectbox("Select Match Field from URNs Spreadsheet", urns_cols, index=urns_default_key_index)
 
 # --- URN image preview utility ---
 if urns_file and "FILE-URN" in urns_df.columns:
@@ -107,18 +107,18 @@ if desc_file:
     cataloging_type = st.radio("Select Cataloging Type", [ "Full Cataloging", "Provisional Records"], horizontal=True)
     geographic_type = st.selectbox("Select Geographic Type", [None, "Israel", "World Judaica"])
     if geographic_type == "World Judaica":
-        artstor_country_col = st.selectbox("Select the Artstor Country Column", desc_cols_with_none)
+        artstor_country_col = st.selectbox("Select Country Column from Desc Metadata Spreadsheet", desc_cols_with_none)
     else:
         artstor_country_col = ""
 
     # select columns
-    desc_key_col = st.selectbox("Select the Match Field", desc_cols_with_none, index=2)  # default: 2nd column
-    desc_title_col = st.selectbox("Select the Title Column", desc_cols_with_none)
-    desc_start_date_col = st.selectbox("Select the Start Date Column", desc_cols_with_none)
-    desc_end_date_col = st.selectbox("Select the End Date Column", desc_cols_with_none)
+    desc_key_col = st.selectbox("Select Match Field from Desc Metadata Spreadsheet", desc_cols_with_none, index=2)  # default: 2nd column
+    desc_title_col = st.selectbox("Select Title Column from Desc Metadata Spreadsheet", desc_cols_with_none)
+    desc_start_date_col = st.selectbox("Select Start Date Column from Desc Metadata Spreadsheet", desc_cols_with_none)
+    desc_end_date_col = st.selectbox("Select End Date Column from Desc Metadata Spreadsheet", desc_cols_with_none)
 
     # select description source
-    desc_source_type = st.selectbox("Select the Source for Description",
+    desc_source_type = st.selectbox("Select Source for General Note / Shareshelf Description",
                                     [None, "Descriptive Metadata Column", "NO DESCRIPTION NOTE", "OTHER"])
     if desc_source_type == "Descriptive Metadata Column":
         desc_note_col = st.selectbox("Select the Note Column", [None] + desc_cols)
@@ -162,16 +162,16 @@ except Exception as e:
     country_code_df = pd.DataFrame(columns=["Country", "Code"])
 
 # --- template-related selections ---
-if urns_file and desc_file and template_df:
+if urns_file and desc_file and template_df is not None:
     # select copyright info
-    template_rights_type = st.selectbox("Select Copyright Information", [None, "STANDARD", "OTHER"])
+    template_rights_type = st.selectbox("Select Source for Rights", [None, "STANDARD", "OTHER"])
     if template_rights_type == "STANDARD":
         template_rights_text = "The President and Fellows of Harvard College make no representation that they are the owner of the copyright; any researcher wishing to make use of an image must therefore assume all responsibility for clearing reproduction rights and for any infringement of Title 17 of the United States Code."
     elif template_rights_type == "OTHER":
         template_rights_text = st.text_area("Enter Custom Copyright Information")
     
     # select crediting info
-    template_credit_type = st.selectbox("Select Crediting Information", [
+    template_credit_type = st.selectbox("Select Source for Crediting", [
         None, "231 Lowe", "435 Swibel", "409 Cowett E", "431 Cowett F&J", 
         "436 Cowett W.", "437 Jacobson", "153 Hvd Litt", "OTHER"])
     if template_credit_type == "231 Lowe":
