@@ -154,7 +154,7 @@ if desc_file:
 
 # --- load country code translation table ---
 try:
-    country_code_df = load_template("Geographic Codes to Look Up_test.xlsx")
+    country_code_df = load_template("Geographic Codes to Look Up.xlsx")
     if not {"Country", "Code"}.issubset(country_code_df.columns):
         country_code_df = pd.DataFrame(columns=["Country", "Code"])
 except Exception as e:
