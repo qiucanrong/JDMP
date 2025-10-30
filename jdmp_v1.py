@@ -9,7 +9,7 @@ st.header("Importing, Cleaning, Validation, Template Population (IP), Exporting"
 # --- upload files ---
 urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
 desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
-template_file = st.file_uploader("Upload SharedShelf Template Excel (optional)", type=["xlsx"])
+template_file = st.file_uploader("Upload SharedShelf Template Excel (optional - if none uploaded, will use default SharedShelf template)", type=["xlsx"])
 
 # --- template file handling ---
 # cached function: loads template (or any Excel) file once, then reuses result
@@ -142,7 +142,7 @@ if desc_file:
     if desc_end_date_col is None:
         missing_selections.append("End Date Column")
     if desc_source_type is None:
-        missing_selections.append("Description Source")
+        missing_selections.append("Source for Description")
     
     # store choices in session state
     #st.session_state["metadata_type"] = metadata_type
@@ -193,9 +193,9 @@ if urns_file and desc_file and template_df is not None:
 
     # check if user made all required selections
     if template_rights_type is None:
-        missing_selections.append("Copyright Information")
+        missing_selections.append("Source for Rights")
     if template_credit_type is None:
-        missing_selections.append("Crediting Information")
+        missing_selections.append("Source for Crediting")
 
 # --- validation ---
 if urns_file and desc_file:
@@ -309,12 +309,21 @@ if urns_file and desc_file and template_df is not None:
         
         titles = desc_df[desc_title_col].astype(str).str.strip()
 
-        # define logic only for posters for now
+        # define logic only for posters & ephemera for now
         if metadata_type == "Posters":
             if cataloging_type == "Full Cataloging":
                 populated_titles = titles
             elif cataloging_type == "Provisional Records":
                     populated_titles = titles + " - poster (Cataloging in progress)"
+            else:
+                st.warning("**Unknown Cataloging Type; titles left blank.**")
+                populated_titles = ""
+        
+        if metadata_type == "Ephemera":
+            if cataloging_type == "Full Cataloging":
+                populated_titles = titles
+            elif cataloging_type == "Provisional Records":
+                    populated_titles = titles + " - ephemera item (Cataloging in progress)"
             else:
                 st.warning("**Unknown Cataloging Type; titles left blank.**")
                 populated_titles = ""
@@ -332,6 +341,16 @@ if urns_file and desc_file and template_df is not None:
                 template_out.loc[:, "Materials/Techniques[34345]"] = "posters"
                 template_out.loc[:, "Work Type[34348]"] = "posters"
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "posters"
+
+                template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+            except KeyError as e:
+                st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
+        if metadata_type == "Ephemera":
+            try:
+                template_out.loc[:, "Creator[34336]"] = ""
+                template_out.loc[:, "Materials/Techniques[34345]"] = "ephemera"
+                template_out.loc[:, "Work Type[34348]"] = "ephemera"
+                template_out.loc[:, "Materials Techniques Note[2560408]"] = "ephemera"
 
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
             except KeyError as e:
