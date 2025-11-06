@@ -472,20 +472,20 @@ if urns_file and desc_file and template_df is not None:
                     cell.border = border
                     cell.alignment = align_top
 
-    st.download_button(
-        label="Download Populated SharedShelf Template (Excel)",
-        data=xlsx_output.getvalue(),
-        file_name="JDMP_Populated_Template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+        st.download_button(
+            label="Download Populated SharedShelf Template (Excel)",
+            data=xlsx_output.getvalue(),
+            file_name="JDMP_Populated_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
-    # - CSV -
-    # use UTF-8 with BOM so Excel on Windows opens it without mojibake
-    csv_bytes = template_out.to_csv(index=False).encode("utf-8-sig")
-    st.download_button(
-        label="Download Populated SharedShelf Template (CSV)",
-        data=csv_bytes,
-        file_name="JDMP_Populated_Template.csv",
-        mime="text/csv",
+        # - CSV -
+        # use UTF-8 with BOM so Excel on Windows opens it without mojibake
+        csv_bytes = template_out.to_csv(index=False).encode("utf-8-sig")
+        st.download_button(
+            label="Download Populated SharedShelf Template (CSV)",
+            data=csv_bytes,
+            file_name="JDMP_Populated_Template.csv",
+            mime="text/csv",
     )
 
