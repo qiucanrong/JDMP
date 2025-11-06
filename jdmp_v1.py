@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
-from openpyxl.styles import Border, Side
+from openpyxl.styles import Border, Side, Alignment
 
 st.title("JDMP Prototype")
 st.header("Importing, Cleaning, Validation, Template Population (IP), Exporting")
@@ -447,31 +447,45 @@ if urns_file and desc_file and template_df is not None:
 
     st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
 
-    # export to Excel
+    # export / download
     if missing_selections:
         st.warning(
             f"**Please select value(s) for {', '.join(missing_selections)} before downloading the populated template.**"
         )
 
     else:
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            template_out.to_excel(writer, index=False)
+        # - Excel -
+        xlsx_output = io.BytesIO()
+        with pd.ExcelWriter(xlsx_output, engine="openpyxl") as writer:
+            template_out.to_excel(writer, index=False, sheet_name="Sheet1")
 
-            # apply border to all cells in the exported excel
-            workbook = writer.book
+            # styling: borders + top alignment + wrap
             worksheet = writer.sheets["Sheet1"]
             thin = Side(border_style="thin", color="000000")
             border = Border(top=thin, left=thin, right=thin, bottom=thin)
-            for row in worksheet.iter_rows(min_row=1, max_row=worksheet.max_row,
-                                           min_col=1, max_col=worksheet.max_column
-                                           ):
+            align_top = Alignment(vertical="top", horizontal="left", wrap_text=True)
+
+            for row in worksheet.iter_rows(
+                min_row=1, max_row=worksheet.max_row, min_col=1, max_col=worksheet.max_column
+            ):
                 for cell in row:
                     cell.border = border
-        st.download_button(
-            label="Download Populated SharedShelf Template (Excel)",
-            data=output.getvalue(),
-            file_name="JDMP_Populated_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    cell.alignment = align_top
+
+    st.download_button(
+        label="Download Populated SharedShelf Template (Excel)",
+        data=xlsx_output.getvalue(),
+        file_name="JDMP_Populated_Template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    # - CSV -
+    # use UTF-8 with BOM so Excel on Windows opens it without mojibake
+    csv_bytes = template_out.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="Download Populated SharedShelf Template (CSV)",
+        data=csv_bytes,
+        file_name="JDMP_Populated_Template.csv",
+        mime="text/csv",
     )
 
