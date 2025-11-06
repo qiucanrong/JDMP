@@ -67,6 +67,21 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         if "image_index" not in st.session_state:
             st.session_state.image_index = 0
+        st.session_state.image_index = max(0, min(st.session_state.image_index, len(urns_df) - 1))
+
+        # numeric jump input (1-based for users)
+        jump_val = st.number_input(
+            "Go to image #",
+            min_value=1,
+            max_value=len(urns_df),
+            value=st.session_state.image_index + 1,
+            step=1,
+            help="Enter a number to jump directly to that image."
+        )
+
+        # sync to 0-based index in session_state
+        if (jump_val - 1) != st.session_state.image_index:
+            st.session_state.image_index = jump_val - 1
         
         urns_image_index = st.session_state.image_index
         urns_image_row = urns_df.iloc[urns_image_index]
