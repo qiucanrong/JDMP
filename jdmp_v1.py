@@ -66,42 +66,45 @@ if urns_file and "FILE-URN" in urns_df.columns:
         total = len(urns_df)
         st.success(f"{total} URNs processed. Preview associated images below.")
 
-        # init session index
+        # initialize session index
         if "image_index" not in st.session_state:
             st.session_state.image_index = 0
 
         # numeric jump
-        st.session_state.image_index = st.number_input(
+        _ = st.number_input(
             f"Jump to image (0–{total-1})",
             min_value=0,
             max_value=max(total - 1, 0),
             step=1,
+            value=int(st.session_state.image_index),
             key="image_index"
         )
 
-        # side-by-side layout: [Prev] [Image+labels] [Next]
+        # side-by-side layout: [prev] [image+labels] [next]
         left, mid, right = st.columns([1, 6, 1], vertical_alignment="center")
 
-        # prev button mutates the same session key
         with left:
-            if st.button("⬅️", use_container_width=True):
+            if st.button("⬅️", width=True):
                 st.session_state.image_index = max(0, st.session_state.image_index - 1)
 
-        # next button mutates the same session key
         with right:
-            if st.button("➡️", use_container_width=True):
+            if st.button("➡️", width=True):
                 st.session_state.image_index = min(total - 1, st.session_state.image_index + 1)
+
+        # clamp (no wrap) just in case
+        st.session_state.image_index = int(max(0, min(total - 1, st.session_state.image_index)))
 
         # read the current index from session state
         idx = int(st.session_state.image_index)
         row = urns_df.iloc[idx]
 
+        # counter + link + image
+        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
         st.markdown(f"**Image {idx + 1} of {total}**")
         st.markdown(f"**URN:** {row['FILE-URN']}")
-        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
 
         try:
-            st.image(row["image_url"], use_container_width=True)
+            st.image(row["image_url"], width=True)
         except Exception as e:
             st.warning(f"Could not load image for URN {row['FILE-URN']}: {e}")
 
