@@ -60,53 +60,35 @@ if urns_file:
 
 # --- URNs image preview utility ---
 if urns_file and "FILE-URN" in urns_df.columns:
-    with st.expander("🖼️ Preview URN Images (click to expand)", expanded=False):
+    with st.expander("🖼️ Preview URN Images (click to expand)"):
         urns_df["FILE-URN"] = urns_df["FILE-URN"].astype(str).str.strip()
         urns_df["image_url"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
-        total = len(urns_df)
-        st.success(f"{total} URNs processed. Preview associated images below.")
+        st.success(f"{len(urns_df)} URNs processed. Preview associated images below.")
 
-        # initialize session index
         if "image_index" not in st.session_state:
             st.session_state.image_index = 0
+        
+        urns_image_index = st.session_state.image_index
+        urns_image_row = urns_df.iloc[urns_image_index]
 
-        # numeric jump
-        _ = st.number_input(
-            f"Jump to image (0–{total-1})",
-            min_value=0,
-            max_value=max(total - 1, 0),
-            step=1,
-            value=int(st.session_state.image_index),
-            key="image_index"
-        )
+        st.markdown(f"[Open in browser (if no image below, click to log in)]({urns_image_row['image_url']})")
 
-        # side-by-side layout: [prev] [image+labels] [next]
-        left, mid, right = st.columns([1, 6, 1], vertical_alignment="center")
+        st.markdown(f"**Image {urns_image_index+1} of {len(urns_df)}**")
+        st.markdown(f"**URN:** {urns_image_row['FILE-URN']}")
 
-        with left:
-            if st.button("⬅️", width=True):
-                st.session_state.image_index = max(0, st.session_state.image_index - 1)
-
-        with right:
-            if st.button("➡️", width=True):
-                st.session_state.image_index = min(total - 1, st.session_state.image_index + 1)
-
-        # clamp (no wrap) just in case
-        st.session_state.image_index = int(max(0, min(total - 1, st.session_state.image_index)))
-
-        # read the current index from session state
-        idx = int(st.session_state.image_index)
-        row = urns_df.iloc[idx]
-
-        # counter + link + image
-        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
-        st.markdown(f"**Image {idx + 1} of {total}**")
-        st.markdown(f"**URN:** {row['FILE-URN']}")
+        # previous / next buttons
+        col_prev, col_next = st.columns([1, 1])
+        with col_prev:
+            if st.button("⬅️ Previous") and st.session_state.image_index > 0:
+                st.session_state.image_index -= 1
+        with col_next:
+            if st.button("Next ➡️") and st.session_state.image_index < len(urns_df) - 1:
+                st.session_state.image_index += 1
 
         try:
-            st.image(row["image_url"], width=True)
+            st.image(urns_image_row["image_url"], use_container_width=True)
         except Exception as e:
-            st.warning(f"Could not load image for URN {row['FILE-URN']}: {e}")
+            st.warning(f"**Could not load image for URN {urns_image_row['FILE-URN']}: {e}**")
 
 # --- descriptive metadata file handling (relevant selections included) ---
 if desc_file:
