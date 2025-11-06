@@ -7,8 +7,8 @@ st.title("JDMP Prototype")
 st.header("Importing, Cleaning, Validation, Template Population (IP), Exporting")
 
 # --- upload files ---
-urns_file = st.file_uploader("Upload URNs Excel", type=["xlsx"])
-desc_file = st.file_uploader("Upload Descriptive Metadata Excel", type=["xlsx"])
+urns_file = st.file_uploader("**Upload URNs Excel**", type=["xlsx"])
+desc_file = st.file_uploader("**Upload Descriptive Metadata Excel**", type=["xlsx"])
 template_file = st.file_uploader("Upload SharedShelf Template Excel (optional - if none uploaded, will use default SharedShelf template)", type=["xlsx"])
 
 # --- template file handling ---
@@ -35,6 +35,8 @@ else: # fallback to default stored template
         template_df = None
 
 # --- URNs file handling ---
+missing_selections = []
+
 if urns_file:
     urns_df = pd.read_excel(urns_file)
     st.subheader("URNs")
@@ -48,14 +50,13 @@ if urns_file:
         st.error("**Column 'FILE-URN' not found in URNs file.**")
 
     urns_cols = urns_df.columns.tolist()
+    urns_cols_with_none = [None] + urns_cols
 
-    # select the match field (default = OBJ-OSN)
-    urns_default_key_col = "OBJ-OSN"
-    if urns_default_key_col in urns_cols:
-        urns_default_key_index = urns_cols.index(urns_default_key_col)
-    else:
-        urns_default_key_index = 0
-    urns_key_col = st.selectbox("Select Match Field from URNs Spreadsheet", urns_cols, index=urns_default_key_index)
+    # select match field
+    urns_key_col = st.selectbox("**Select Match Field from URNs Spreadsheet (usually FILE-OSN)**", urns_cols_with_none)
+
+    if urns_key_col is None:
+        missing_selections.append("Match Field for URNs Spreadsheet")
 
 # --- URN image preview utility ---
 if urns_file and "FILE-URN" in urns_df.columns:
@@ -93,8 +94,6 @@ if urns_file and "FILE-URN" in urns_df.columns:
             st.warning(f"**Could not load image for URN {urns_image_row['FILE-URN']}: {e}**")
 
 # --- descriptive metadata file handling (relevant selections included) ---
-missing_selections = []
-
 if desc_file:
     desc_df = pd.read_excel(desc_file)
     st.subheader("Descriptive Metadata")
@@ -103,27 +102,27 @@ if desc_file:
     desc_cols_with_none = [None] + desc_cols
 
     # select types
-    metadata_type = st.selectbox("Select Metadata Type", [None, "Posters", "Ephemera", "Memorabilia"])
-    cataloging_type = st.radio("Select Cataloging Type", [ "Full Cataloging", "Provisional Records"], horizontal=True)
-    geographic_type = st.selectbox("Select Geographic Type", [None, "Israel", "World Judaica"])
+    metadata_type = st.selectbox("**Select Metadata Type**", [None, "Posters", "Ephemera", "Memorabilia"])
+    cataloging_type = st.radio("**Select Cataloging Type**", [ "Full Cataloging", "Provisional Records"], horizontal=True)
+    geographic_type = st.selectbox("**Select Geographic Type**", [None, "Israel", "World Judaica"])
     if geographic_type == "World Judaica":
-        artstor_country_col = st.selectbox("Select Country Column from Desc Metadata Spreadsheet", desc_cols_with_none)
+        artstor_country_col = st.selectbox("**Select Country Column from Desc Metadata Spreadsheet**", desc_cols_with_none)
     else:
         artstor_country_col = ""
 
     # select columns
-    desc_key_col = st.selectbox("Select Match Field from Desc Metadata Spreadsheet", desc_cols_with_none, index=2)  # default: 2nd column
-    desc_title_col = st.selectbox("Select Title Column from Desc Metadata Spreadsheet", desc_cols_with_none)
-    desc_start_date_col = st.selectbox("Select Start Date Column from Desc Metadata Spreadsheet", desc_cols_with_none)
-    desc_end_date_col = st.selectbox("Select End Date Column from Desc Metadata Spreadsheet", desc_cols_with_none)
+    desc_key_col = st.selectbox("**Select Match Field from Desc Metadata Spreadsheet**", desc_cols_with_none, index=2)  # default: 2nd column
+    desc_title_col = st.selectbox("**Select Title Column from Desc Metadata Spreadsheet**", desc_cols_with_none)
+    desc_start_date_col = st.selectbox("**Select Start Date Column from Desc Metadata Spreadsheet**", desc_cols_with_none)
+    desc_end_date_col = st.selectbox("**Select End Date Column from Desc Metadata Spreadsheet**", desc_cols_with_none)
 
-    # select description source
-    desc_source_type = st.selectbox("Select Source for General Note / Shareshelf Description",
-                                    [None, "Descriptive Metadata Column", "NO DESCRIPTION NOTE", "OTHER"])
+    # select general note
+    desc_source_type = st.selectbox("**Select Source for General Note / Shareshelf Description**",
+                                    [None, "Descriptive Metadata Column", "NO GENERAL NOTE", "OTHER"])
     if desc_source_type == "Descriptive Metadata Column":
-        desc_note_col = st.selectbox("Select the Note Column", [None] + desc_cols)
+        desc_note_col = st.selectbox("**Select the Note Column**", [None] + desc_cols)
     elif desc_source_type == "OTHER":
-        desc_source_text = st.text_area("Enter Custom Description Note")
+        desc_source_text = st.text_area("**Enter Custom General Note**")
 
     # check if user made all required selections
     if metadata_type is None:
@@ -134,7 +133,7 @@ if desc_file:
         if artstor_country_col is None:
             missing_selections.append("Artstor Country Column")
     if desc_key_col is None:
-        missing_selections.append("Match Field")
+        missing_selections.append("Match Field for Descriptive Metadata")
     if desc_title_col is None:
         missing_selections.append("Title Column")
     if desc_start_date_col is None:
@@ -142,7 +141,7 @@ if desc_file:
     if desc_end_date_col is None:
         missing_selections.append("End Date Column")
     if desc_source_type is None:
-        missing_selections.append("Source for Description")
+        missing_selections.append("Source for General Note")
     
     # store choices in session state
     #st.session_state["metadata_type"] = metadata_type
@@ -164,14 +163,14 @@ except Exception as e:
 # --- template-related selections ---
 if urns_file and desc_file and template_df is not None:
     # select copyright info
-    template_rights_type = st.selectbox("Select Source for Rights", [None, "STANDARD", "OTHER"])
+    template_rights_type = st.selectbox("**Select Source for Rights**", [None, "STANDARD", "OTHER"])
     if template_rights_type == "STANDARD":
         template_rights_text = "The President and Fellows of Harvard College make no representation that they are the owner of the copyright; any researcher wishing to make use of an image must therefore assume all responsibility for clearing reproduction rights and for any infringement of Title 17 of the United States Code."
     elif template_rights_type == "OTHER":
         template_rights_text = st.text_area("Enter Custom Copyright Information")
     
     # select crediting info
-    template_credit_type = st.selectbox("Select Source for Crediting", [
+    template_credit_type = st.selectbox("**Select Source for Crediting**", [
         None, "231 Lowe", "435 Swibel", "409 Cowett E", "431 Cowett F&J", 
         "436 Cowett W.", "437 Jacobson", "153 Hvd Litt", "OTHER"])
     if template_credit_type == "231 Lowe":
@@ -189,7 +188,7 @@ if urns_file and desc_file and template_df is not None:
     elif template_credit_type == "153 Hvd Litt":
         template_credit_text = "Digitization funded from the income of the Harvard-Littauer Judaica Endowment in the Harvard College Library (Fund 560153)."
     elif template_credit_type == "OTHER":
-        template_credit_text = st.text_area("Enter Custom Crediting Information")
+        template_credit_text = st.text_area("**Enter Custom Crediting Information**")
 
     # check if user made all required selections
     if template_rights_type is None:
@@ -356,19 +355,19 @@ if urns_file and desc_file and template_df is not None:
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
 
-    # category 3-4: descriptive metadata population - description
+    # category 3-4: descriptive metadata population - general note
     if "Description[34357]" in template_out.columns:
         if desc_source_type is not None:
             if desc_source_type == "Descriptive Metadata Column" and desc_note_col:
                 template_out.loc[:, "Description[34357]"] = desc_df[desc_note_col].astype(str).str.strip()
-            elif desc_source_type == "NO DESCRIPTION NOTE":
+            elif desc_source_type == "NO GENERAL NOTE":
                 template_out.loc[:, "Description[34357]"] = ""
             elif desc_source_type == "OTHER" and desc_source_text:
                 template_out.loc[:, "Description[34357]"] = desc_source_text
             else:
-                st.warning("**Please select a valid Description source or text.**")
+                st.warning("**Please select a valid General Note source or text.**")
     else:
-        st.error("**Template missing expected column for Description population: 'Description[34357]'**")
+        st.error("**Template missing expected column for General Note population: 'Description[34357]'**")
 
     # category 3-5: descriptive metadata population - culture
     if "Culture[34337]" in template_out.columns:
@@ -378,7 +377,7 @@ if urns_file and desc_file and template_df is not None:
             elif geographic_type == "World Judaica":
                 template_out.loc[:, "Culture[34337]"] = "Jewish [[11282373]]"
     else:
-        st.error("**Template missing expected column for Description population: 'Culture[34337]'**")
+        st.error("**Template missing expected column for Culture Type population: 'Culture[34337]'**")
 
     # category 3-6: descriptive metadata population - artstor country
     if "Artstor Country[34356]" in template_out.columns:
@@ -404,7 +403,7 @@ if urns_file and desc_file and template_df is not None:
                 if len(blank_countries) > 0:
                     st.warning("**One or more rows in the Artstor Country column are blank; left blank in the output.**")
     else:
-        st.error("**Template missing expected column for Description population: 'Artstor Country[34356]'**")
+        st.error("**Template missing expected column for Country Information population: 'Artstor Country[34356]'**")
 
     # category 4: copyright + crediting info
     if template_rights_type is not None:
