@@ -58,20 +58,25 @@ if urns_file:
     if urns_key_col is None:
         missing_selections.append("Match Field for URNs Spreadsheet")
 
-# --- URN image preview utility ---
+# --- URNs image preview utility ---
 if urns_file and "FILE-URN" in urns_df.columns:
     with st.expander("🖼️ Preview URN Images (click to expand)"):
         urns_df["FILE-URN"] = urns_df["FILE-URN"].astype(str).str.strip()
-        urns_df["image_URL"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
-        st.success(f"{len(urns_df)} URNs processed. Use the slider to preview associated images below.")
+        urns_df["image_url"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
+        st.success(f"{len(urns_df)} URNs processed. Preview associated images below.")
 
-        # slider to browse
-        #urns_image_index = st.slider("Select Image Index", 0, len(urns_df) - 1, 0)
-
-        # previous / next buttons
         if "image_index" not in st.session_state:
             st.session_state.image_index = 0
+        
+        urns_image_index = st.session_state.image_index
+        urns_image_row = urns_df.iloc[urns_image_index]
 
+        st.markdown(f"[Open in browser (if no image below, click to log in)]({urns_image_row['image_url']})")
+
+        st.markdown(f"**Image {urns_image_index+1} of {len(urns_df)}**")
+        st.markdown(f"**URN:** {urns_image_row['FILE-URN']}")
+
+        # previous / next buttons
         col_prev, col_next = st.columns([1, 1])
         with col_prev:
             if st.button("⬅️ Previous") and st.session_state.image_index > 0:
@@ -80,16 +85,8 @@ if urns_file and "FILE-URN" in urns_df.columns:
             if st.button("Next ➡️") and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
-        urns_image_index = st.session_state.image_index
-        urns_image_row = urns_df.iloc[urns_image_index]
-        st.markdown(f"**Showing image {urns_image_index+1} of {len(urns_df)}**")
-
-        urns_image_row = urns_df.iloc[urns_image_index]
-        st.markdown(f"**URN:** {urns_image_row['FILE-URN']}")
-        st.markdown(f"[Open in browser]({urns_image_row['image_URL']})")
-
         try:
-            st.image(urns_image_row["image_URL"], use_container_width=True)
+            st.image(urns_image_row["image_url"], use_container_width=True)
         except Exception as e:
             st.warning(f"**Could not load image for URN {urns_image_row['FILE-URN']}: {e}**")
 
@@ -129,9 +126,8 @@ if desc_file:
         missing_selections.append("Metadata Type")
     if geographic_type is None:
         missing_selections.append("Geographic Type")
-    if geographic_type is not None:
-        if artstor_country_col is None:
-            missing_selections.append("Artstor Country Column")
+    if geographic_type == "World Judaica" and artstor_country_col is None:
+        missing_selections.append("Artstor Country Column")
     if desc_key_col is None:
         missing_selections.append("Match Field for Descriptive Metadata")
     if desc_title_col is None:
@@ -198,7 +194,7 @@ if urns_file and desc_file and template_df is not None:
 
 # --- validation ---
 if urns_file and desc_file:
-    if "urns_key_col" is not None and "desc_key_col" is not None:
+    if urns_key_col is not None and desc_key_col is not None:
         urn_keys = set(urns_df[urns_key_col].astype(str).str.strip())
         desc_keys = set(desc_df[desc_key_col].astype(str).str.strip())
 
@@ -223,7 +219,7 @@ if urns_file and desc_file:
         #    st.success("Override enabled: You can proceed to populate the template")
 
     else:
-        st.info("Please select the match fields for validation to run.")
+        st.info("Please select Match Fields for validation to run.")
 
 # --- template population pipeline ---
 if urns_file and desc_file and template_df is not None:
@@ -264,7 +260,7 @@ if urns_file and desc_file and template_df is not None:
         st.error(f"**Template missing expected column(s) for URN-related population: {e}**")
 
     # category 3-1: descriptive metadata population - start/end dates
-    if (desc_start_date_col and desc_end_date_col) is not None:
+    if desc_start_date_col is not None and desc_end_date_col is not None:
         start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
         end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
         template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
