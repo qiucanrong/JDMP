@@ -198,7 +198,7 @@ if urns_file and desc_file and template_df is not None:
 
 # --- validation ---
 if urns_file and desc_file:
-    if "urns_key_col" in locals() and "desc_key_col" in locals():
+    if "urns_key_col" is not None and "desc_key_col" is not None:
         urn_keys = set(urns_df[urns_key_col].astype(str).str.strip())
         desc_keys = set(desc_df[desc_key_col].astype(str).str.strip())
 
