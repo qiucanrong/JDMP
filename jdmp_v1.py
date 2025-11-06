@@ -66,65 +66,44 @@ if urns_file and "FILE-URN" in urns_df.columns:
         total = len(urns_df)
         st.success(f"{total} URNs processed. Preview associated images below.")
 
-        # session index
+        # init session index
         if "image_index" not in st.session_state:
             st.session_state.image_index = 0
 
-        # - top controls: prev | numeric jump | next -
-        ctrl_prev, ctrl_center, ctrl_next = st.columns([1, 3, 1])
-        with ctrl_prev:
-            if st.button("⬅️ Previous", key="btn_prev_top", use_container_width=True):
+        # numeric jump
+        st.session_state.image_index = st.number_input(
+            f"Jump to image (0–{total-1})",
+            min_value=0,
+            max_value=max(total - 1, 0),
+            step=1,
+            key="image_index"
+        )
+
+        # side-by-side layout: [Prev] [Image+labels] [Next]
+        left, mid, right = st.columns([1, 6, 1], vertical_alignment="center")
+
+        # prev button mutates the same session key
+        with left:
+            if st.button("⬅️", use_container_width=True):
                 st.session_state.image_index = max(0, st.session_state.image_index - 1)
 
-        with ctrl_center:
-            # numeric jump (kept in sync with session state)
-            idx = st.number_input(
-                f"Jump to image (0–{total-1})",
-                min_value=0,
-                max_value=total - 1,
-                value=int(st.session_state.image_index),
-                step=1,
-                key="num_jump"
-            )
-            # update session index if user typed a new number
-            if idx != st.session_state.image_index:
-                st.session_state.image_index = int(idx)
-
-        with ctrl_next:
-            if st.button("Next ➡️", key="btn_next_top", use_container_width=True):
+        # next button mutates the same session key
+        with right:
+            if st.button("➡️", use_container_width=True):
                 st.session_state.image_index = min(total - 1, st.session_state.image_index + 1)
 
-        # current selection
+        # read the current index from session state
         idx = int(st.session_state.image_index)
         row = urns_df.iloc[idx]
 
-        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
-        st.markdown(
-                f"**Image {st.session_state.image_index + 1} of {total}**",
-                help="Type an index or use the arrows"
-            )
+        st.markdown(f"**Image {idx + 1} of {total}**")
         st.markdown(f"**URN:** {row['FILE-URN']}")
+        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
 
-        # - side-by-side layout: [prev] [image] [next] -
-        left, mid, right = st.columns([1, 6, 1], vertical_alignment="center")
-
-        with left:
-            if st.button("⬅️", key="btn_prev_side", use_container_width=True):
-                st.session_state.image_index = max(0, st.session_state.image_index - 1)
-                idx = int(st.session_state.image_index)
-                row = urns_df.iloc[idx]
-
-        with right:
-            if st.button("➡️", key="btn_next_side", use_container_width=True):
-                st.session_state.image_index = min(total - 1, st.session_state.image_index + 1)
-                idx = int(st.session_state.image_index)
-                row = urns_df.iloc[idx]
-        
-        with mid:
-            try:
-                st.image(row["image_url"], use_container_width=True)
-            except Exception as e:
-                st.warning(f"Could not load image for URN {row['FILE-URN']}: {e}")
+        try:
+            st.image(row["image_url"], use_container_width=True)
+        except Exception as e:
+            st.warning(f"Could not load image for URN {row['FILE-URN']}: {e}")
 
 # --- descriptive metadata file handling (relevant selections included) ---
 if desc_file:
