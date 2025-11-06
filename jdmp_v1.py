@@ -90,11 +90,6 @@ if urns_file and "FILE-URN" in urns_df.columns:
             if idx != st.session_state.image_index:
                 st.session_state.image_index = int(idx)
 
-            st.markdown(
-                f"**Image {st.session_state.image_index + 1} of {total}**",
-                help="Type an index or use the arrows"
-            )
-
         with ctrl_next:
             if st.button("Next ➡️", key="btn_next_top", use_container_width=True):
                 st.session_state.image_index = min(total - 1, st.session_state.image_index + 1)
@@ -102,6 +97,13 @@ if urns_file and "FILE-URN" in urns_df.columns:
         # current selection
         idx = int(st.session_state.image_index)
         row = urns_df.iloc[idx]
+
+        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
+        st.markdown(
+                f"**Image {st.session_state.image_index + 1} of {total}**",
+                help="Type an index or use the arrows"
+            )
+        st.markdown(f"**URN:** {row['FILE-URN']}")
 
         # - side-by-side layout: [prev] [image] [next] -
         left, mid, right = st.columns([1, 6, 1], vertical_alignment="center")
@@ -112,19 +114,17 @@ if urns_file and "FILE-URN" in urns_df.columns:
                 idx = int(st.session_state.image_index)
                 row = urns_df.iloc[idx]
 
-        with mid:
-            st.markdown(f"**URN:** {row['FILE-URN']}")
-            st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
-            try:
-                st.image(row["image_url"], use_container_width=True)
-            except Exception as e:
-                st.warning(f"Could not load image for URN {row['FILE-URN']}: {e}")
-
         with right:
             if st.button("➡️", key="btn_next_side", use_container_width=True):
                 st.session_state.image_index = min(total - 1, st.session_state.image_index + 1)
                 idx = int(st.session_state.image_index)
                 row = urns_df.iloc[idx]
+        
+        with mid:
+            try:
+                st.image(row["image_url"], use_container_width=True)
+            except Exception as e:
+                st.warning(f"Could not load image for URN {row['FILE-URN']}: {e}")
 
 # --- descriptive metadata file handling (relevant selections included) ---
 if desc_file:
