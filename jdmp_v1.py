@@ -99,13 +99,13 @@ if urns_file and "FILE-URN" in urns_df.columns:
         col_prev, col_img, col_next = st.columns([1, 6, 1])
 
         with col_prev:
-            st.markdown("<br><br><br>", unsafe_allow_html=True)
-            if st.button("⬅️ Previous", width="stretch") and st.session_state.image_index > 0:
+            st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
+            if st.button("⬅️", width="stretch") and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
 
         with col_next:
-            st.markdown("<br><br><br>", unsafe_allow_html=True)
-            if st.button("Next ➡️", width="stretch") and st.session_state.image_index < len(urns_df) - 1:
+            st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
+            if st.button("➡️", width="stretch") and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
         # refresh row after any button click
