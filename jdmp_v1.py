@@ -99,11 +99,11 @@ if urns_file and "FILE-URN" in urns_df.columns:
         col_prev, col_img, col_next = st.columns([1, 6, 1])
 
         with col_prev:
-            if st.button("⬅️", width=True) and st.session_state.image_index > 0:
+            if st.button("⬅️", width="stretch") and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
 
         with col_next:
-            if st.button("➡️", width=True) and st.session_state.image_index < len(urns_df) - 1:
+            if st.button("➡️", width="stretch") and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
         # refresh row after any button click
@@ -113,7 +113,7 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         with col_img:
             try:
-                st.image(row["image_url"], width=True)
+                st.image(row["image_url"], width="stretch")
             except Exception as e:
                 st.warning(f"**Could not load image for URN {row['FILE-URN']}: {e}**")
 
@@ -472,7 +472,7 @@ if urns_file and desc_file and template_df is not None:
     if "template_credit_type" in locals():
         preview_cols += ["Notes[2560400]"]
 
-    st.dataframe(template_out[preview_cols].head(10), use_container_width=True)
+    st.dataframe(template_out[preview_cols].head(10), width="stretch")
 
     # export / download
     if missing_selections:
