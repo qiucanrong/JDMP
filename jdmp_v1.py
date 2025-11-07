@@ -65,45 +65,55 @@ if urns_file and "FILE-URN" in urns_df.columns:
         urns_df["image_url"] = "http://nrs.harvard.edu/" + urns_df["FILE-URN"] + "?"
         st.success(f"{len(urns_df)} URNs processed. Preview associated images below.")
 
+        if len(urns_df) == 0:
+            st.warning("**No rows to preview after cleaning.**")
+            st.stop()
+
+        # keep session index valid and in sync
         if "image_index" not in st.session_state:
             st.session_state.image_index = 0
         st.session_state.image_index = max(0, min(st.session_state.image_index, len(urns_df) - 1))
 
-        # numeric jump input (1-based for users)
+        idx = st.session_state.image_index
+        row = urns_df.iloc[idx]
+
+        st.markdown(f"[Open in browser (if no image below, click to log in)]({row['image_url']})")
+        st.markdown(f"**Image {idx + 1} of {len(urns_df)}**")
+        st.markdown(f"**URN:** {row['FILE-URN']}")
+
+        # numeric jump box (1-based for users)
         jump_val = st.number_input(
             "Go to image #",
             min_value=1,
             max_value=len(urns_df),
-            value=st.session_state.image_index + 1,
+            value=idx + 1,
             step=1,
             help="Enter a number to jump directly to that image."
         )
-
-        # sync to 0-based index in session_state
         if (jump_val - 1) != st.session_state.image_index:
             st.session_state.image_index = jump_val - 1
-        
-        urns_image_index = st.session_state.image_index
-        urns_image_row = urns_df.iloc[urns_image_index]
+            idx = st.session_state.image_index
+            row = urns_df.iloc[idx]
 
-        st.markdown(f"[Open in browser (if no image below, click to log in)]({urns_image_row['image_url']})")
-
-        st.markdown(f"**Image {urns_image_index+1} of {len(urns_df)}**")
-        st.markdown(f"**URN:** {urns_image_row['FILE-URN']}")
-
-        # previous / next buttons
+        # prev / next buttons
         col_prev, col_next = st.columns([1, 1])
         with col_prev:
-            if st.button("⬅️ Previous") and st.session_state.image_index > 0:
+            if st.button("⬅️ Previous", use_container_width=True) and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
         with col_next:
-            if st.button("Next ➡️") and st.session_state.image_index < len(urns_df) - 1:
+            if st.button("Next ➡️", use_container_width=True) and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
+        # refresh row in case buttons changed index
+        st.session_state.image_index = max(0, min(st.session_state.image_index, len(urns_df) - 1))
+        idx = st.session_state.image_index
+        row = urns_df.iloc[idx]
+
+        # image display
         try:
-            st.image(urns_image_row["image_url"], use_container_width=True)
+            st.image(row["image_url"], use_container_width=True)
         except Exception as e:
-            st.warning(f"**Could not load image for URN {urns_image_row['FILE-URN']}: {e}**")
+            st.warning(f"**Could not load image for URN {row['FILE-URN']}: {e}**")
 
 # --- descriptive metadata file handling (relevant selections included) ---
 if desc_file:
@@ -278,7 +288,7 @@ if urns_file and desc_file and template_df is not None:
     if desc_start_date_col is not None and desc_end_date_col is not None:
         start = pd.to_numeric(desc_df[desc_start_date_col], errors="coerce")
         end   = pd.to_numeric(desc_df[desc_end_date_col], errors="coerce")
-        template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "Latest Date[34343]",
+        template_date_cols = ["Date Description[34341]", "ARTstor Earliest Date[34342]", "ARTstor Latest Date[34343]",
                               "Earliest Date[2560433]", "Latest Date[2560435]"]
 
         def assign_dates(start, end, template_date_warnings):
