@@ -83,7 +83,7 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         # numeric jump box (1-based for users)
         jump_val = st.number_input(
-            "Go to image #",
+            "Go to image",
             min_value=1,
             max_value=len(urns_df),
             value=idx + 1,
@@ -95,25 +95,27 @@ if urns_file and "FILE-URN" in urns_df.columns:
             idx = st.session_state.image_index
             row = urns_df.iloc[idx]
 
-        # prev / next buttons
-        col_prev, col_next = st.columns([1, 1])
+        # side-by-side layout: prev | image | next 
+        col_prev, col_img, col_next = st.columns([1, 6, 1])
+
         with col_prev:
-            if st.button("⬅️ Previous", use_container_width=True) and st.session_state.image_index > 0:
+            if st.button("⬅️", width=True) and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
+
         with col_next:
-            if st.button("Next ➡️", use_container_width=True) and st.session_state.image_index < len(urns_df) - 1:
+            if st.button("➡️", width=True) and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
-        # refresh row in case buttons changed index
+        # refresh row after any button click
         st.session_state.image_index = max(0, min(st.session_state.image_index, len(urns_df) - 1))
         idx = st.session_state.image_index
         row = urns_df.iloc[idx]
 
-        # image display
-        try:
-            st.image(row["image_url"], use_container_width=True)
-        except Exception as e:
-            st.warning(f"**Could not load image for URN {row['FILE-URN']}: {e}**")
+        with col_img:
+            try:
+                st.image(row["image_url"], width=True)
+            except Exception as e:
+                st.warning(f"**Could not load image for URN {row['FILE-URN']}: {e}**")
 
 # --- descriptive metadata file handling (relevant selections included) ---
 if desc_file:
