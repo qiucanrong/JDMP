@@ -34,16 +34,16 @@ else: # fallback to default stored template
         template_df = None
 
 # --- crediting file handling ---
-crediting_file = st.file_uploader("**Upload Crediting-Notes Translation Table**", type=["xlsx"])
+crediting_file = st.file_uploader("Upload Crediting-Notes Translation Table (optional)", type=["xlsx"])
 
 @st.cache_data
 def load_crediting_table(path):
     # read first two columns only and normalize
     df = pd.read_excel(path)
     df = df.iloc[:, :2].copy()
-    df.columns = ["source", "note"]
+    df.columns = ["source", "notes"]
     df["source"] = df["source"].astype(str).str.strip()
-    df["note"] = df["note"].astype(str).fillna("").str.strip()
+    df["notes"] = df["notes"].astype(str).fillna("").str.strip()
     df = df.dropna(subset=["source"])
     return df
 
@@ -57,7 +57,7 @@ if crediting_file:  # if user uploads a new table
 else:  # fallback to default table
     try:
         crediting_df = load_crediting_table("Notes-Crediting - Translation Table - Column DB.xlsx")
-        st.success(f"Default Crediting-Notes Translation Table loaded: {len(crediting_df)} sources")
+        st.success(f"Default Crediting-Notes Translation Table: {len(crediting_df)} sources")
     except Exception as e:
         st.error(f"**Default file not found or unreadable: {e}**")
         crediting_df = None
@@ -227,7 +227,7 @@ if urns_file and desc_file and template_df is not None:
     template_credit_text = ""
 
     if crediting_df is not None and not crediting_df.empty:
-        crediting_df_source = sorted(crediting_df["source"].unique().tolist())
+        crediting_df_source = crediting_df["source"].tolist()
 
         template_credit_type = st.selectbox(
             "**Select Source for Crediting**",
@@ -235,8 +235,8 @@ if urns_file and desc_file and template_df is not None:
         )
 
         if template_credit_type and template_credit_type != "OTHER":
-            credit_df_note = crediting_df.loc[crediting_df["source"] == template_credit_type, "note"]
-            template_credit_text = next((t for t in credit_df_note if t and t.strip()), "")
+            credit_df_notes = crediting_df.loc[crediting_df["source"] == template_credit_type, "notes"]
+            template_credit_text = next((t for t in credit_df_notes if t and t.strip()), "")
             if not template_credit_text:
                 st.warning("**Selected source has no corresponding note in the table.**")
         elif template_credit_type == "OTHER":
