@@ -98,28 +98,15 @@ if urns_file and "FILE-URN" in urns_df.columns:
         # side-by-side layout: prev | image | next 
         col_prev, col_img, col_next = st.columns([1, 6, 1])
 
-        st.markdown("""
-            <style>
-            .centered-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100%;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
         with col_prev:
-            st.markdown('<div class="centered-container">', unsafe_allow_html=True)
-            if st.button("⬅️ Previous", use_container_width=True) and st.session_state.image_index > 0:
+            st.markdown("<br><br><br>", unsafe_allow_html=True)
+            if st.button("⬅️ Previous", width="stretch") and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
-            st.markdown('</div>', unsafe_allow_html=True)
 
         with col_next:
-            st.markdown('<div class="centered-container">', unsafe_allow_html=True)
-            if st.button("Next ➡️", use_container_width=True) and st.session_state.image_index < len(urns_df) - 1:
+            st.markdown("<br><br><br>", unsafe_allow_html=True)
+            if st.button("Next ➡️", width="stretch") and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
-            st.markdown('</div>', unsafe_allow_html=True)
 
         # refresh row after any button click
         st.session_state.image_index = max(0, min(st.session_state.image_index, len(urns_df) - 1))
