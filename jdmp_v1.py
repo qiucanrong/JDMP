@@ -20,19 +20,47 @@ def load_template(path: str):
 if template_file: # if user uploads a new template
     try:
         template_df = pd.read_excel(template_file)
-        st.success(f"Custom template loaded: {template_df.shape[1]} columns detected")
+        st.success(f"Custom Template loaded: {template_df.shape[1]} columns detected")
     except Exception as e:
-        st.error(f"**Could not read the uploaded template: {e}**")
+        st.error(f"**Could not read the uploaded Template: {e}**")
         template_df = None
-
 else: # fallback to default stored template
     try:
         template_df = load_template("SharedShelf Template.xlsx")
         #st.info("No template uploaded. Using default SharedShelf template.")
-        st.success(f"Default SharedShelf template: {template_df.shape[1]} columns detected")
+        st.success(f"Default SharedShelf Template: {template_df.shape[1]} columns detected")
     except Exception as e:
-        st.error(f"**Default template not found or unreadable: {e}**")
+        st.error(f"**Default Template not found or unreadable: {e}**")
         template_df = None
+
+# --- crediting file handling ---
+crediting_file = st.file_uploader("**Upload Crediting-Notes Translation Table**", type=["xlsx"])
+
+@st.cache_data
+def load_crediting_table(path):
+    # read first two columns only and normalize
+    df = pd.read_excel(path)
+    df = df.iloc[:, :2].copy()
+    df.columns = ["source", "note"]
+    df["source"] = df["source"].astype(str).str.strip()
+    df["note"] = df["note"].astype(str).fillna("").str.strip()
+    df = df.dropna(subset=["source"])
+    return df
+
+if crediting_file:  # if user uploads a new table
+    try:
+        crediting_df = load_crediting_table(crediting_file)
+        st.success(f"Custom Crediting-Notes Translation Table loaded: {len(crediting_df)} sources")
+    except Exception as e:
+        st.error(f"**Could not read the uploaded file: {e}**")
+        crediting_df = None
+else:  # fallback to default table
+    try:
+        crediting_df = load_crediting_table("Notes-Crediting - Translation Table - Column DB.xlsx")
+        st.success(f"Default Crediting-Notes Translation Table loaded: {len(crediting_df)} sources")
+    except Exception as e:
+        st.error(f"**Default file not found or unreadable: {e}**")
+        crediting_df = None
 
 # --- URNs file handling ---
 missing_selections = []
@@ -96,7 +124,7 @@ if urns_file and "FILE-URN" in urns_df.columns:
             row = urns_df.iloc[idx]
 
         # side-by-side layout: prev | image | next 
-        col_prev, col_img, col_next = st.columns([1, 6, 1])
+        col_prev, col_img, col_next = st.columns([1, 8, 1])
 
         with col_prev:
             st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
@@ -195,25 +223,26 @@ if urns_file and desc_file and template_df is not None:
         template_rights_text = st.text_area("Enter Custom Copyright Information")
     
     # select crediting info
-    template_credit_type = st.selectbox("**Select Source for Crediting**", [
-        None, "231 Lowe", "435 Swibel", "409 Cowett E", "431 Cowett F&J", 
-        "436 Cowett W.", "437 Jacobson", "153 Hvd Litt", "OTHER"])
-    if template_credit_type == "231 Lowe":
-        template_credit_text = "Digitization funded from the income of the Joe and Emily Lowe Foundation Book Fund for Judaica in the Harvard College Library (Fund 560231)."
-    elif template_credit_type == "435 Swibel":
-        template_credit_text = "Digitization funded from the income of the Howard J. Swibel Library Preservation Fund in the Harvard College Library (Fund 560435)."
-    elif template_credit_type == "409 Cowett E":
-        template_credit_text = "Digitization funded from the income of the Edward M. Cowett 1951 Memorial Judaica Preservation Fund in the Harvard College Library (Fund 560409)."
-    elif template_credit_type == "431 Cowett F&J":
-        template_credit_text = "Digitization funded from the income of the Florence and Joseph B. Cowett Memorial Fund for Judaica Preservation in the Harvard College Library (Fund 560431)."
-    elif template_credit_type == "436 Cowett W.":
-        template_credit_text = "Digitization funded from the income of the Wilbur A. Cowett Judaica Preservation Fund in the Harvard College Library (Fund 560436)."
-    elif template_credit_type == "437 Jacobson":
-        template_credit_text = "Digitization funded from the income of the Joan Leiman Jacobson Fund for the Preservation of Judaica in the Harvard College Library (Fund 560437)."
-    elif template_credit_type == "153 Hvd Litt":
-        template_credit_text = "Digitization funded from the income of the Harvard-Littauer Judaica Endowment in the Harvard College Library (Fund 560153)."
-    elif template_credit_type == "OTHER":
-        template_credit_text = st.text_area("**Enter Custom Crediting Information**")
+    template_credit_type = None
+    template_credit_text = ""
+
+    if crediting_df is not None and not crediting_df.empty:
+        crediting_df_source = sorted(crediting_df["source"].unique().tolist())
+
+        template_credit_type = st.selectbox(
+            "**Select Source for Crediting**",
+            [None] + crediting_df_source + ["OTHER"]
+        )
+
+        if template_credit_type and template_credit_type != "OTHER":
+            credit_df_note = crediting_df.loc[crediting_df["source"] == template_credit_type, "note"]
+            template_credit_text = next((t for t in credit_df_note if t and t.strip()), "")
+            if not template_credit_text:
+                st.warning("**Selected source has no corresponding note in the table.**")
+        elif template_credit_type == "OTHER":
+            template_credit_text = st.text_area("**Enter Custom Crediting Information**")
+    else:
+        st.error("**No valid Crediting-Notes Traslation Table available. Upload one or include the default file in the app repo.**")
 
     # check if user made all required selections
     if template_rights_type is None:
