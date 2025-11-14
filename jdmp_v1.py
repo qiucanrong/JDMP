@@ -9,58 +9,60 @@ st.header("Importing, Cleaning, Validation, Template Population (IP), Exporting"
 # --- upload files ---
 urns_file = st.file_uploader("**Upload URNs Excel**", type=["xlsx"])
 desc_file = st.file_uploader("**Upload Descriptive Metadata Excel**", type=["xlsx"])
-template_file = st.file_uploader("Upload SharedShelf Template Excel (optional - if none uploaded, will use default SharedShelf template)", type=["xlsx"])
+
+with st.expander("Optional Uploads"):
+    template_file = st.file_uploader("Upload SharedShelf Template Excel (optional - if none uploaded, will use default SharedShelf template)", type=["xlsx"])
 
 # --- template file handling ---
-# cached function: loads template (or any Excel) file once, then reuses result
-@st.cache_data
-def load_template(path: str):
-    return pd.read_excel(path)
+    # cached function: loads template (or any Excel) file once, then reuses result
+    @st.cache_data
+    def load_template(path: str):
+        return pd.read_excel(path)
 
-if template_file: # if user uploads a new template
-    try:
-        template_df = pd.read_excel(template_file)
-        st.success(f"Custom Template loaded: {template_df.shape[1]} columns detected")
-    except Exception as e:
-        st.error(f"**Could not read the uploaded Template: {e}**")
-        template_df = None
-else: # fallback to default stored template
-    try:
-        template_df = load_template("SharedShelf Template.xlsx")
-        #st.info("No template uploaded. Using default SharedShelf template.")
-        st.success(f"Default SharedShelf Template: {template_df.shape[1]} columns detected")
-    except Exception as e:
-        st.error(f"**Default Template not found or unreadable: {e}**")
-        template_df = None
+    if template_file: # if user uploads a new template
+        try:
+            template_df = pd.read_excel(template_file)
+            st.success(f"Custom Template loaded: {template_df.shape[1]} columns detected")
+        except Exception as e:
+            st.error(f"**Could not read the uploaded Template: {e}**")
+            template_df = None
+    else: # fallback to default stored template
+        try:
+            template_df = load_template("SharedShelf Template.xlsx")
+            #st.info("No template uploaded. Using default SharedShelf template.")
+            st.success(f"Default SharedShelf Template: {template_df.shape[1]} columns detected")
+        except Exception as e:
+            st.error(f"**Default Template not found or unreadable: {e}**")
+            template_df = None
 
 # --- crediting file handling ---
-crediting_file = st.file_uploader("Upload Crediting-Notes Translation Table (optional)", type=["xlsx"])
+    crediting_file = st.file_uploader("Upload Crediting-Notes Translation Table (optional)", type=["xlsx"])
 
-@st.cache_data
-def load_crediting_table(path):
-    # read first two columns only and normalize
-    df = pd.read_excel(path)
-    df = df.iloc[:, :2].copy()
-    df.columns = ["source", "notes"]
-    df["source"] = df["source"].astype(str).str.strip()
-    df["notes"] = df["notes"].astype(str).fillna("").str.strip()
-    df = df.dropna(subset=["source"])
-    return df
+    @st.cache_data
+    def load_crediting_table(path):
+        # read first two columns only and normalize
+        df = pd.read_excel(path)
+        df = df.iloc[:, :2].copy()
+        df.columns = ["source", "notes"]
+        df["source"] = df["source"].astype(str).str.strip()
+        df["notes"] = df["notes"].astype(str).fillna("").str.strip()
+        df = df.dropna(subset=["source"])
+        return df
 
-if crediting_file:  # if user uploads a new table
-    try:
-        crediting_df = load_crediting_table(crediting_file)
-        st.success(f"Custom Crediting-Notes Translation Table loaded: {len(crediting_df)} sources")
-    except Exception as e:
-        st.error(f"**Could not read the uploaded file: {e}**")
-        crediting_df = None
-else:  # fallback to default table
-    try:
-        crediting_df = load_crediting_table("Notes-Crediting - Translation Table - Column DB.xlsx")
-        st.success(f"Default Crediting-Notes Translation Table: {len(crediting_df)} sources")
-    except Exception as e:
-        st.error(f"**Default file not found or unreadable: {e}**")
-        crediting_df = None
+    if crediting_file:  # if user uploads a new table
+        try:
+            crediting_df = load_crediting_table(crediting_file)
+            st.success(f"Custom Crediting-Notes Translation Table loaded: {len(crediting_df)} sources")
+        except Exception as e:
+            st.error(f"**Could not read the uploaded file: {e}**")
+            crediting_df = None
+    else:  # fallback to default table
+        try:
+            crediting_df = load_crediting_table("Notes-Crediting - Translation Table - Column DB.xlsx")
+            st.success(f"Default Crediting-Notes Translation Table: {len(crediting_df)} sources")
+        except Exception as e:
+            st.error(f"**Default file not found or unreadable: {e}**")
+            crediting_df = None
 
 # --- URNs file handling ---
 missing_selections = []
@@ -203,15 +205,6 @@ if desc_file:
     #st.session_state["desc_title_col"] = desc_title_col
     #st.session_state["desc_start_date_col"] = desc_start_date_col
     #st.session_state["desc_end_date_col"] = desc_end_date_col
-
-# --- load country code translation table ---
-try:
-    country_code_df = load_template("Geographic Codes to Look Up.xlsx")
-    if not {"Country", "Code"}.issubset(country_code_df.columns):
-        country_code_df = pd.DataFrame(columns=["Country", "Code"])
-except Exception as e:
-    st.warning(f"**Could not load Country-Code translation table: {e}**")
-    country_code_df = pd.DataFrame(columns=["Country", "Code"])
 
 # --- template-related selections ---
 if urns_file and desc_file and template_df is not None:
@@ -427,9 +420,9 @@ if urns_file and desc_file and template_df is not None:
     if "Culture[34337]" in template_out.columns:
         if geographic_type is not None:
             if geographic_type == "Israel":
-                template_out.loc[:, "Culture[34337]"] = "Israeli [[AAT 300195487]]"
+                template_out.loc[:, "Culture[34337]"] = "Israeli"
             elif geographic_type == "World Judaica":
-                template_out.loc[:, "Culture[34337]"] = "Jewish [[11282373]]"
+                template_out.loc[:, "Culture[34337]"] = "Jewish"
     else:
         st.error("**Template missing expected column for Culture Type population: 'Culture[34337]'**")
 
@@ -437,25 +430,9 @@ if urns_file and desc_file and template_df is not None:
     if "Artstor Country[34356]" in template_out.columns:
         if geographic_type is not None:
             if geographic_type == "Israel":
-                template_out.loc[:, "Artstor Country[34356]"] = "Israel [[113112980]]"
+                template_out.loc[:, "Artstor Country[34356]"] = "Israel"
             elif geographic_type == "World Judaica" and artstor_country_col is not None:
-                desc_country = desc_df[artstor_country_col].astype(str).str.strip()
-                country_merged = pd.merge(desc_country.to_frame("Country"), country_code_df, how="left", on="Country")
-                country_merged["Artstor Country[34356]"] = country_merged.apply(
-                    lambda x: x["Code"]
-                    if pd.notna(x["Code"])
-                    else "",
-                    axis=1
-                )
-                template_out.loc[:, "Artstor Country[34356]"] = country_merged["Artstor Country[34356]"]
-
-                missing_countries = country_merged.loc[country_merged["Code"].isna() & (country_merged["Country"] != "nan"), "Country"].unique()
-                blank_countries = country_merged.loc[country_merged["Country"] == "nan" , "Country"]
-
-                if len(missing_countries) > 0:
-                    st.warning(f"**No code for 'Artstor Country[34356]' found for the following countries: {', '.join(missing_countries)}**")
-                if len(blank_countries) > 0:
-                    st.warning("**One or more rows in the Artstor Country column are blank; left blank in the output.**")
+                template_out.loc[:, "Artstor Country[34356]"] = desc_df[artstor_country_col].astype(str).str.strip()
     else:
         st.error("**Template missing expected column for Country Information population: 'Artstor Country[34356]'**")
 
