@@ -4,13 +4,13 @@ import io
 from openpyxl.styles import Border, Side, Alignment
 
 st.title("Judaica Division Metadata Parser (Prototype)")
-st.header("Importing, Cleaning, Validation, Template Population, Exporting")
+#st.header("Importing, Cleaning, Validation, Template Population, Exporting")
 
 # --- upload files ---
 urns_file = st.file_uploader("**Upload URNs Excel**", type=["xlsx"])
 desc_file = st.file_uploader("**Upload Descriptive Metadata Excel**", type=["xlsx"])
 
-with st.expander("**📤 Optional Uploads**"):
+with st.expander("**📤 Optional Uploads (click to expand)**"):
     template_file = st.file_uploader("Upload SharedShelf Template Excel (optional - if none uploaded, will use default SharedShelf template)", type=["xlsx"])
 
 # --- template file handling ---
