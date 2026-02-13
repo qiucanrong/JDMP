@@ -208,6 +208,12 @@ if desc_file:
 
 # --- template-related selections ---
 if urns_file and desc_file and template_df is not None:
+    st.subheader("Template Population")
+
+    # enter creator & subject info
+    template_creator = st.text_area("**Enter Creator Information**")
+    template_subject = st.text_area("**Enter Subject Information**")
+
     # select copyright info
     template_rights_type = st.selectbox("**Select Source for Rights**", [None, "STANDARD", "OTHER"])
     if template_rights_type == "STANDARD":
@@ -383,7 +389,7 @@ if urns_file and desc_file and template_df is not None:
     if metadata_type is not None:
         if metadata_type == "Posters":
             try:
-                template_out.loc[:, "Creator[34336]"] = ""
+                #template_out.loc[:, "Creator[34336]"] = ""
                 template_out.loc[:, "Materials/Techniques[34345]"] = "posters"
                 template_out.loc[:, "Work Type[34348]"] = "posters"
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "posters"
@@ -393,7 +399,7 @@ if urns_file and desc_file and template_df is not None:
                 st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
         if metadata_type == "Ephemera":
             try:
-                template_out.loc[:, "Creator[34336]"] = ""
+                #template_out.loc[:, "Creator[34336]"] = ""
                 template_out.loc[:, "Materials/Techniques[34345]"] = "ephemera"
                 template_out.loc[:, "Work Type[34348]"] = "ephemera"
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "ephemera"
