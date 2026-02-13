@@ -3,8 +3,8 @@ import pandas as pd
 import io
 from openpyxl.styles import Border, Side, Alignment
 
-st.title("Judaica Digital Metadata Parser (Prototype)")
-#st.header("Importing, Cleaning, Validation, Template Population, Exporting")
+st.title("Judaica Digital Metadata Parser v2")
+st.header("clean export SharedShelf template (selected columns only)")
 
 # --- upload files ---
 urns_file = st.file_uploader("**Upload URNs Excel**", type=["xlsx"])
@@ -287,7 +287,7 @@ if urns_file and desc_file and template_df is not None:
     template_out = template_df.head(0).copy()
     template_out = template_out.reindex(range(target_rows)).reset_index(drop=True)
 
-    # category 1: standard fixed values
+    # category 1: template population - standard fixed values
     try:
         template_out.loc[:, "SSID"] = "NEW"
         template_out.loc[:, "File Count"] = 1
@@ -442,7 +442,20 @@ if urns_file and desc_file and template_df is not None:
     else:
         st.error("**Template missing expected column for Country Information population: 'Artstor Country[34356]'**")
 
-    # category 4: copyright + crediting info
+    # category 1-2: template population - creator + subject
+    if "Creator[34336]" in template_out.columns:
+        if template_creator and template_creator.strip():
+            template_out.loc[:, "Creator[34336]"] = template_creator.strip()
+    else:
+        st.error("**Template missing expected column: 'Creator[34336]'**")
+
+    if "Subject[34358]" in template_out.columns:
+        if template_subject and template_subject.strip():
+            template_out.loc[:, "Subject[34358]"] = template_subject.strip()
+    else:
+        st.error("**Template missing expected column: 'Subject[34358]'**")
+
+    # category 1-3: template population - copyright + crediting info
     if template_rights_type is not None:
         if template_rights_text != "":
             try:
@@ -465,30 +478,51 @@ if urns_file and desc_file and template_df is not None:
     # save intermediate for future categories
     st.session_state["template_out"] = template_out
 
-    # show combined preview of what’s been filled so far
-    preview_cols = []
-    if "template_fixed_val_cols" in locals():
-        preview_cols += template_fixed_val_cols
-    if "template_urns_cols" in locals():
-        preview_cols += template_urns_cols
-    if "populated_titles" in locals():
-        preview_cols += ["Title[34338]"]
-    if "template_date_cols" in locals():
-        preview_cols += template_date_cols
-    if "geographic_type" in locals():
-        preview_cols += ["Culture[34337]", "Artstor Country[34356]"]
-    if "template_meta_type_cols" in locals():
-        preview_cols += template_meta_type_cols
-    if "desc_source_type" in locals():
-        preview_cols += ["Description[34357]"]
-    if "template_rights_type" in locals():
-        preview_cols += ["Rights[34363]", "Rights/Access Information[2560402]"]
-    if "template_credit_type" in locals():
-        preview_cols += ["Notes[2560400]"]
+# --- template column reduction for export (keep template order) ---
+    template_order = template_df.columns.tolist()
+    mentioned_cols = set()
+    for name in [
+        "SSID", "File Count", "Repository[34349]", "Image Repository[34365]",
+        "Send To Harvard[34382]", "In House Use Only[34383]", "Export Only In Group[34411]",
+        "Filename",
+        "Repository Classification Number[34364]", "Image Classification Number[34369]", "Repository Number[2560412]",
+        "Title[34338]",
+        "Date Description[34341]", "ARTstor Earliest Date[34342]", "ARTstor Latest Date[34343]",
+        "Earliest Date[2560433]", "Latest Date[2560435]",
+        "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]",
+        "Description[34357]",
+        "Creator[34336]", "Subject[34358]",
+        "Culture[34337]",
+        "Artstor Country[34356]",
+        "Rights[34363]", "Rights/Access Information[2560402]",
+        "Notes[2560400]",
+    ]:
+        mentioned_cols.add(name)
 
-    st.dataframe(template_out[preview_cols].head(10), width="stretch")
+    non_empty_cols = set()
+    for col in template_out.columns:
+        series = template_out[col]
+        has_content = series.astype(str).str.strip().replace("nan", "").ne("").any()
+        if has_content:
+            non_empty_cols.add(col)
 
-    # export / download
+    always_keep = {
+        "Creator[34336]",
+        "Subject[34358]",
+    }
+
+    # final keep set:
+    # - any columns with content
+    # - any columns explicitly mentioned in code
+    # - plus Creator/Subject/... (as required) always
+    keep_cols_set = non_empty_cols.union(mentioned_cols).union(always_keep)
+    keep_cols = [c for c in template_order if (c in keep_cols_set and c in template_out.columns)]
+    template_export = template_out.loc[:, keep_cols].copy()    
+
+# --- preview ---
+    st.dataframe(template_export.head(10), width="stretch")
+
+# --- export / download ---
     if missing_selections:
         st.warning(
             f"**Please select value(s) for {', '.join(missing_selections)} before downloading the populated template.**"
@@ -498,7 +532,7 @@ if urns_file and desc_file and template_df is not None:
         # - Excel -
         xlsx_output = io.BytesIO()
         with pd.ExcelWriter(xlsx_output, engine="openpyxl") as writer:
-            template_out.to_excel(writer, index=False, sheet_name="Sheet1")
+            template_export.to_excel(writer, index=False, sheet_name="Sheet1")
 
             # styling: borders + top alignment + wrap
             worksheet = writer.sheets["Sheet1"]
@@ -522,7 +556,7 @@ if urns_file and desc_file and template_df is not None:
 
         # - CSV -
         # use UTF-8 with BOM so Excel on Windows opens it without mojibake
-        csv_bytes = template_out.to_csv(index=False).encode("utf-8-sig")
+        csv_bytes = template_export.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
             label="Download Populated SharedShelf Template (CSV)",
             data=csv_bytes,
