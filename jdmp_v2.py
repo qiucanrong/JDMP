@@ -3,10 +3,10 @@ import pandas as pd
 import io
 from openpyxl.styles import Border, Side, Alignment
 
-st.set_page_config(page_title="JDMP", layout="centered")
+st.set_page_config(page_title="JDMP Reduced", layout="centered")
 
-st.title("Judaica Digital Metadata Parser v2")
-st.header("clean export SharedShelf template (selected columns only)")
+st.title("Judaica Digital Metadata Parser (Reduced Version)")
+st.header("Exporting SharedShelf template with selected columns only")
 
 # --- upload files ---
 urns_file = st.file_uploader("**Upload URNs Excel**", type=["xlsx"])
@@ -132,12 +132,12 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         with col_prev:
             st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
-            if st.button("⬅️", width="stretch") and st.session_state.image_index > 0:
+            if st.button("⬅️") and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
 
         with col_next:
             st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
-            if st.button("➡️", width="stretch") and st.session_state.image_index < len(urns_df) - 1:
+            if st.button("➡️") and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
         # refresh row after any button click
@@ -147,7 +147,7 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         with col_img:
             try:
-                st.image(row["image_url"], width="stretch")
+                st.image(row["image_url"])
             except Exception as e:
                 st.warning(f"**Could not load image for URN {row['FILE-URN']}: {e}**")
 
@@ -160,7 +160,7 @@ if desc_file:
     desc_cols_with_none = [None] + desc_cols
 
     # select types
-    metadata_type = st.selectbox("**Select Metadata Type**", [None, "Posters", "Ephemera", "Memorabilia"])
+    metadata_type = st.selectbox("**Select Metadata Type**", [None, "Posters", "Ephemera", "Memorabilia", "Photographs"])
     cataloging_type = st.radio("**Select Cataloging Type**", [ "Full Cataloging", "Provisional Records"], horizontal=True)
     geographic_type = st.selectbox("**Select Geographic Type**", [None, "Israel", "World Judaica"])
     if geographic_type == "World Judaica":
@@ -199,14 +199,6 @@ if desc_file:
         missing_selections.append("End Date Column")
     if desc_source_type is None:
         missing_selections.append("Source for General Note")
-    
-    # store choices in session state
-    #st.session_state["metadata_type"] = metadata_type
-    #st.session_state["geographic_type"] = geographic_type
-    #st.session_state["cataloging_type"] = cataloging_type
-    #st.session_state["desc_title_col"] = desc_title_col
-    #st.session_state["desc_start_date_col"] = desc_start_date_col
-    #st.session_state["desc_end_date_col"] = desc_end_date_col
 
 # --- template-related selections ---
 if urns_file and desc_file and template_df is not None:
@@ -363,24 +355,32 @@ if urns_file and desc_file and template_df is not None:
         
         titles = desc_df[desc_title_col].astype(str).str.strip()
 
-        # define logic only for posters & ephemera for now
-        if metadata_type == "Posters":
-            if cataloging_type == "Full Cataloging":
-                populated_titles = titles
-            elif cataloging_type == "Provisional Records":
-                    populated_titles = titles + " - poster (Cataloging in progress)"
-            else:
-                st.warning("**Unknown Cataloging Type; titles left blank.**")
-                populated_titles = ""
+        if cataloging_type == "Full Cataloging":
+            populated_titles = titles
+
+        elif cataloging_type == "Provisional Records" and geographic_type == "Israel":
+            if metadata_type == "Posters":
+                populated_titles = "Israel Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Ephemera":
+                populated_titles = "Israel Ephemera Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Memorabilia":
+                populated_titles = "Israel Realia Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Photographs":
+                populated_titles = "Israel Photograph Collection - " + titles + " [CATALOGING IN PROCESS.]"
         
-        if metadata_type == "Ephemera":
-            if cataloging_type == "Full Cataloging":
-                populated_titles = titles
-            elif cataloging_type == "Provisional Records":
-                    populated_titles = titles + " - ephemera item (Cataloging in progress)"
-            else:
-                st.warning("**Unknown Cataloging Type; titles left blank.**")
-                populated_titles = ""
+        elif cataloging_type == "Provisional Records" and geographic_type == "World Judaica":
+            if metadata_type == "Posters":
+                populated_titles = "Judaica Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Ephemera":
+                populated_titles = "Judaica Ephemera Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Memorabilia":
+                populated_titles = "Judaica Realia Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Photographs":
+                populated_titles = "Judaica Photograph Collection - " + titles + " [CATALOGING IN PROCESS.]"
+
+        else:
+            st.warning("**Unknown Cataloging Type; titles left blank.**")
+            populated_titles = ""
 
         try:
             template_out.loc[:, "Title[34338]"] = populated_titles
@@ -399,12 +399,35 @@ if urns_file and desc_file and template_df is not None:
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
-        if metadata_type == "Ephemera":
+        
+        elif metadata_type == "Ephemera":
             try:
                 #template_out.loc[:, "Creator[34336]"] = ""
                 template_out.loc[:, "Materials/Techniques[34345]"] = "ephemera"
                 template_out.loc[:, "Work Type[34348]"] = "ephemera"
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "ephemera"
+
+                template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+            except KeyError as e:
+                st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
+        
+        elif metadata_type == "Memorabilia":
+            try:
+                template_out.loc[:, "Creator[34336]"] = ""
+                template_out.loc[:, "Materials/Techniques[34345]"] = "xxx (placeholder)"
+                template_out.loc[:, "Work Type[34348]"] = "xxx (placeholder)"
+                template_out.loc[:, "Materials Techniques Note[2560408]"] = "xxx (placeholder)"
+
+                template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+            except KeyError as e:
+                st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
+        
+        elif metadata_type == "Photographs":
+            try:
+                template_out.loc[:, "Creator[34336]"] = ""
+                template_out.loc[:, "Materials/Techniques[34345]"] = "photographs"
+                template_out.loc[:, "Work Type[34348]"] = "photographs"
+                template_out.loc[:, "Materials Techniques Note[2560408]"] = "photographs"
 
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
             except KeyError as e:
@@ -522,7 +545,7 @@ if urns_file and desc_file and template_df is not None:
     template_export = template_out.loc[:, keep_cols].copy()    
 
 # --- preview ---
-    st.dataframe(template_export.head(10), width="stretch")
+    st.dataframe(template_export.head(10))
 
 # --- export / download ---
     if missing_selections:

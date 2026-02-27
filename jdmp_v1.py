@@ -3,9 +3,9 @@ import pandas as pd
 import io
 from openpyxl.styles import Border, Side, Alignment
 
-st.set_page_config(page_title="JDMP", layout="centered")
+st.set_page_config(page_title="JDMP Full", layout="centered")
 
-st.title("Judaica Digital Metadata Parser v1 (Prototype)")
+st.title("Judaica Digital Metadata Parser (Full Version)")
 #st.header("Importing, Cleaning, Validation, Template Population, Exporting")
 
 # --- upload files ---
@@ -132,12 +132,12 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         with col_prev:
             st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
-            if st.button("⬅️", width="stretch") and st.session_state.image_index > 0:
+            if st.button("⬅️") and st.session_state.image_index > 0:
                 st.session_state.image_index -= 1
 
         with col_next:
             st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
-            if st.button("➡️", width="stretch") and st.session_state.image_index < len(urns_df) - 1:
+            if st.button("➡️") and st.session_state.image_index < len(urns_df) - 1:
                 st.session_state.image_index += 1
 
         # refresh row after any button click
@@ -147,7 +147,7 @@ if urns_file and "FILE-URN" in urns_df.columns:
 
         with col_img:
             try:
-                st.image(row["image_url"], width="stretch")
+                st.image(row["image_url"])
             except Exception as e:
                 st.warning(f"**Could not load image for URN {row['FILE-URN']}: {e}**")
 
@@ -160,7 +160,7 @@ if desc_file:
     desc_cols_with_none = [None] + desc_cols
 
     # select types
-    metadata_type = st.selectbox("**Select Metadata Type**", [None, "Posters", "Ephemera", "Memorabilia"])
+    metadata_type = st.selectbox("**Select Metadata Type**", [None, "Posters", "Ephemera", "Memorabilia", "Photographs"])
     cataloging_type = st.radio("**Select Cataloging Type**", [ "Full Cataloging", "Provisional Records"], horizontal=True)
     geographic_type = st.selectbox("**Select Geographic Type**", [None, "Israel", "World Judaica"])
     if geographic_type == "World Judaica":
@@ -357,24 +357,32 @@ if urns_file and desc_file and template_df is not None:
         
         titles = desc_df[desc_title_col].astype(str).str.strip()
 
-        # define logic only for posters & ephemera for now
-        if metadata_type == "Posters":
-            if cataloging_type == "Full Cataloging":
-                populated_titles = titles
-            elif cataloging_type == "Provisional Records":
-                    populated_titles = titles + " - poster (Cataloging in progress)"
-            else:
-                st.warning("**Unknown Cataloging Type; titles left blank.**")
-                populated_titles = ""
+        if cataloging_type == "Full Cataloging":
+            populated_titles = titles
+
+        elif cataloging_type == "Provisional Records" and geographic_type == "Israel":
+            if metadata_type == "Posters":
+                populated_titles = "Israel Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Ephemera":
+                populated_titles = "Israel Ephemera Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Memorabilia":
+                populated_titles = "Israel Realia Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Photographs":
+                populated_titles = "Israel Photograph Collection - " + titles + " [CATALOGING IN PROCESS.]"
         
-        if metadata_type == "Ephemera":
-            if cataloging_type == "Full Cataloging":
-                populated_titles = titles
-            elif cataloging_type == "Provisional Records":
-                    populated_titles = titles + " - ephemera item (Cataloging in progress)"
-            else:
-                st.warning("**Unknown Cataloging Type; titles left blank.**")
-                populated_titles = ""
+        elif cataloging_type == "Provisional Records" and geographic_type == "World Judaica":
+            if metadata_type == "Posters":
+                populated_titles = "Judaica Poster Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Ephemera":
+                populated_titles = "Judaica Ephemera Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Memorabilia":
+                populated_titles = "Judaica Realia Collection - " + titles + " [CATALOGING IN PROCESS.]"
+            elif metadata_type == "Photographs":
+                populated_titles = "Judaica Photograph Collection - " + titles + " [CATALOGING IN PROCESS.]"
+
+        else:
+            st.warning("**Unknown Cataloging Type; titles left blank.**")
+            populated_titles = ""
 
         try:
             template_out.loc[:, "Title[34338]"] = populated_titles
@@ -393,12 +401,35 @@ if urns_file and desc_file and template_df is not None:
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
             except KeyError as e:
                 st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
-        if metadata_type == "Ephemera":
+        
+        elif metadata_type == "Ephemera":
             try:
                 template_out.loc[:, "Creator[34336]"] = ""
                 template_out.loc[:, "Materials/Techniques[34345]"] = "ephemera"
                 template_out.loc[:, "Work Type[34348]"] = "ephemera"
                 template_out.loc[:, "Materials Techniques Note[2560408]"] = "ephemera"
+
+                template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+            except KeyError as e:
+                st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
+        
+        elif metadata_type == "Memorabilia":
+            try:
+                template_out.loc[:, "Creator[34336]"] = ""
+                template_out.loc[:, "Materials/Techniques[34345]"] = "xxx (placeholder)"
+                template_out.loc[:, "Work Type[34348]"] = "xxx (placeholder)"
+                template_out.loc[:, "Materials Techniques Note[2560408]"] = "xxx (placeholder)"
+
+                template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
+            except KeyError as e:
+                st.error(f"**Template missing expected column(s) for Metadata Type-related population: {e}**")
+        
+        elif metadata_type == "Photographs":
+            try:
+                template_out.loc[:, "Creator[34336]"] = ""
+                template_out.loc[:, "Materials/Techniques[34345]"] = "photographs"
+                template_out.loc[:, "Work Type[34348]"] = "photographs"
+                template_out.loc[:, "Materials Techniques Note[2560408]"] = "photographs"
 
                 template_meta_type_cols = ["Creator[34336]", "Materials/Techniques[34345]", "Work Type[34348]", "Materials Techniques Note[2560408]"]
             except KeyError as e:
@@ -482,7 +513,7 @@ if urns_file and desc_file and template_df is not None:
     if "template_credit_type" in locals():
         preview_cols += ["Notes[2560400]"]
 
-    st.dataframe(template_out[preview_cols].head(10), width="stretch")
+    st.dataframe(template_out[preview_cols].head(10))
 
     # export / download
     if missing_selections:
