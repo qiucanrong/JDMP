@@ -3,7 +3,9 @@ import pandas as pd
 import io
 from openpyxl.styles import Border, Side, Alignment
 
-st.title("Judaica Digital Metadata Parser (Prototype)")
+st.set_page_config(page_title="JDMP", layout="centered")
+
+st.title("Judaica Digital Metadata Parser v1 (Prototype)")
 #st.header("Importing, Cleaning, Validation, Template Population, Exporting")
 
 # --- upload files ---

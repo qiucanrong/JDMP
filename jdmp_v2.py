@@ -3,6 +3,8 @@ import pandas as pd
 import io
 from openpyxl.styles import Border, Side, Alignment
 
+st.set_page_config(page_title="JDMP", layout="centered")
+
 st.title("Judaica Digital Metadata Parser v2")
 st.header("clean export SharedShelf template (selected columns only)")
 
